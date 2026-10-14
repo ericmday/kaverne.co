@@ -1,0 +1,157 @@
+<!doctype html>
+<title>Kaverne · Journey</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="description" content="Straight on through the caves: Chauvet, Notre-Dame, the subway, CERN, orbit, and round again.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* the ASCII lab scroll journey, flown in a straight line: every cave's opening sits dead centre, and the next cave waits inside its light */
+:root{
+  color-scheme:dark;
+  --bg:#0A0A0A; --chrome:#5E5E5E; --hi:#E6E6E6;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--chrome);font:400 12px/1.4 var(--mono);-webkit-text-size-adjust:100%;overflow:hidden;overscroll-behavior:none}
+.sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.scr{position:fixed;inset:0;overflow:hidden;background:var(--bg);touch-action:none;-webkit-tap-highlight-color:rgba(0,0,0,0)}
+.scr canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.scr::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,.14) 3px),radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.6) 100%)}
+.hud{position:absolute;z-index:2;left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));display:flex;justify-content:space-between;gap:16px;letter-spacing:.04em;pointer-events:none}
+.hud.t{top:max(14px,env(safe-area-inset-top))}
+.hud.b{bottom:max(14px,env(safe-area-inset-bottom))}
+.hud a{pointer-events:auto;color:var(--chrome);text-decoration:none;padding:6px 0;transition:color .4s}
+.hud a:hover,.hud a:focus-visible{color:var(--hi)}
+.hud a:focus-visible{outline:1px solid #E07A34;outline-offset:3px}
+.era{color:#9A9A9A;transition:opacity .2s linear;font-variant-numeric:tabular-nums}
+.depth{font-variant-numeric:tabular-nums;text-align:right}
+.hint{position:absolute;z-index:2;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);letter-spacing:.06em;white-space:nowrap;transition:opacity 1.2s ease;pointer-events:none}
+@media (max-width:640px){.hint{bottom:calc(max(14px,env(safe-area-inset-bottom)) + 44px)}}
+@media (prefers-reduced-motion:reduce){.hint,.era,.hud a{transition:none}}
+</style>
+
+<main class="scr" id="scr">
+  <h1 class="sr">Kaverne: a journey straight through the caves</h1>
+  <p class="sr">An ASCII flight forward through five caves, each inside the light of the last: Chauvet, Notre-Dame, a subway tunnel, CERN, and an orbiting station, then round again. Scroll, swipe or use the arrow keys to move.</p>
+  <canvas id="cv" aria-hidden="true"></canvas>
+  <div class="hud t"><a href="/">kaverne</a><span class="depth" id="depth" aria-hidden="true"></span></div>
+  <div class="hud b"><span class="era" id="era" aria-hidden="true"></span><a href="mailto:hello@kaverne.co">hello@kaverne.co</a></div>
+  <div class="hint" id="hint" aria-hidden="true">scroll to go further in</div>
+</main>
+
+<script>
+(function(){
+'use strict';
+var RMQ=matchMedia('(prefers-reduced-motion: reduce)'),RM=RMQ.matches;
+var DPR=Math.min(2,window.devicePixelRatio||1);
+var MONO='"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+var RAMP=' .:-=+*#%@'.split(''),NB=24;
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function lerp(a,b,k){return a+(b-a)*k;}
+function sstep(a,b,v){var k=clamp((v-a)/(b-a),0,1);return k*k*(3-2*k);}
+function h2(x,y,s){var n=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263)+Math.imul(s|0,1442695041))|0;n=Math.imul(n^(n>>>13),1274126177);n^=n>>>16;return (n>>>0)/4294967296;}
+
+/* ---------- image analysis (ASCII lab): luminance + summed-area table ---------- */
+function loadImg(src){return new Promise(function(res,rej){var im=new Image();im.onload=function(){res(im);};im.onerror=rej;im.src=src;});}
+function lumData(im){
+  var w=im.naturalWidth,h=im.naturalHeight,c=document.createElement('canvas');c.width=w;c.height=h;
+  var x=c.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);
+  var d=x.getImageData(0,0,w,h).data,L=new Float32Array(w*h),W1=w+1,S=new Float64Array(W1*(h+1)),hist=new Uint32Array(256);
+  for(var yy=0;yy<h;yy++){var row=0;for(var xx=0;xx<w;xx++){var i=yy*w+xx,p=i*4,v=(0.299*d[p]+0.587*d[p+1]+0.114*d[p+2])/255;L[i]=v;hist[(v*255)|0]++;row+=v;S[(yy+1)*W1+xx+1]=S[yy*W1+xx+1]+row;}}
+  var tot=w*h,acc=0,lo=0,hi=1,gotLo=false;
+  for(var b=0;b<256;b++){acc+=hist[b];if(!gotLo&&acc>=tot*0.01){lo=b/255;gotLo=true;}if(acc>=tot*0.995){hi=b/255;break;}}
+  if(hi-lo<0.2)hi=Math.min(1,lo+0.2);
+  return {w:w,h:h,L:L,S:S,W1:W1,lo:lo,hi:hi};}
+function bilin(D,x,y){x=clamp(x,0,D.w-1.001);y=clamp(y,0,D.h-1.001);var xi=x|0,yi=y|0,fx=x-xi,fy=y-yi,i=yi*D.w+xi,L=D.L;
+  return (L[i]*(1-fx)+L[i+1]*fx)*(1-fy)+(L[i+D.w]*(1-fx)+L[i+D.w+1]*fx)*fy;}
+function boxAvg(D,x0,y0,x1,y1){
+  if(x1-x0<1.3&&y1-y0<1.3)return bilin(D,(x0+x1)*0.5-0.5,(y0+y1)*0.5-0.5);
+  var a=clamp(Math.floor(x0),0,D.w-1),b=clamp(Math.ceil(x1),a+1,D.w),c=clamp(Math.floor(y0),0,D.h-1),e=clamp(Math.ceil(y1),c+1,D.h),S=D.S,W1=D.W1;
+  return (S[e*W1+b]-S[c*W1+b]-S[e*W1+a]+S[c*W1+a])/((b-a)*(e-c));}
+function tone(D,v){v=(v-D.lo)/(D.hi-D.lo);v=v<0?0:v>1?1:v;return Math.pow(v,0.95);}
+
+/* ---------- character grid renderer (ASCII lab) ---------- */
+function makeGrid(W,H,cols){var cw=W/cols,rows=Math.max(6,Math.round(H/(cw*1.85))),ch=H/rows;
+  return {cols:cols,rows:rows,cw:cw,ch:ch,fs:Math.min(cw*1.68,ch*0.98),n:cols*rows,lum:new Float32Array(cols*rows),key:new Int16Array(cols*rows)};}
+function rgb(a){return 'rgb('+(a[0]|0)+','+(a[1]|0)+','+(a[2]|0)+')';}
+var PAL=(function(){var c=[];for(var b=0;b<NB;b++){var k=b/(NB-1);c.push(rgb([lerp(34,230,k),lerp(34,230,k),lerp(34,230,k)]));}return {bg:'#0A0A0A',c:c};})();
+var CNT=new Int32Array(NB+1),ORD=new Int32Array(1);
+function drawGrid(ctx,g,thr,charOf){var cv=ctx.canvas,lum=g.lum,key=g.key,n=g.n,cols=g.cols,cw=g.cw,ch=g.ch;
+  ctx.fillStyle=PAL.bg;ctx.fillRect(0,0,cv.width,cv.height);if(ORD.length<n)ORD=new Int32Array(n);CNT.fill(0);
+  for(var i=0;i<n;i++){var l=lum[i];if(l<thr){key[i]=-1;continue;}var b=Math.min(NB-1,(l*(NB-1)+0.5)|0);key[i]=b;CNT[b+1]++;}
+  for(var b2=0;b2<NB;b2++)CNT[b2+1]+=CNT[b2];var pos=CNT.slice(0,NB);for(var j=0;j<n;j++){if(key[j]>=0)ORD[pos[key[j]]++]=j;}
+  ctx.font=g.fs.toFixed(2)+'px '+MONO;ctx.textAlign='center';ctx.textBaseline='middle';var yo=ch*0.5+g.fs*0.04;
+  for(var b3=0;b3<NB;b3++){var s=CNT[b3],e=CNT[b3+1];if(s===e)continue;ctx.fillStyle=PAL.c[b3];
+    for(var k=s;k<e;k++){var idx=ORD[k];ctx.fillText(charOf(idx,lum[idx]),(idx%cols+0.5)*cw,((idx/cols)|0)*ch+yo);}}}
+var GCV=document.createElement('canvas'),GX=GCV.getContext('2d');
+function glow(ctx,amt){var cv=ctx.canvas,w=Math.max(2,(cv.width/6)|0),h=Math.max(2,(cv.height/6)|0);if(GCV.width!==w||GCV.height!==h){GCV.width=w;GCV.height=h;}
+  GX.globalCompositeOperation='copy';GX.imageSmoothingQuality='high';GX.drawImage(cv,0,0,w,h);ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=amt;ctx.drawImage(GCV,0,0,cv.width,cv.height);ctx.restore();}
+
+/* ---------- the straight-line zoom ----------
+   Each cave gets a base view V: the largest screen-shaped window centred on its vanishing point (the light at the end).
+   Position p in [0,1) within a cave scales that window by z^-p about its centre, so the camera only ever moves
+   straight ahead. The next cave occupies the window's central 1/z, so at p=1 the screen is exactly the next
+   cave at p=0: no cut, no drift. */
+/* [file, caption, vanishing point (the light at the end), zoom to reach the next cave: roughly frame width / opening width] */
+var ERAS=[['chauvet','-36000 \u00b7 chauvet',{x:0.503,y:0.527},11],['cathedral','1163 \u00b7 notre-dame',{x:0.5,y:0.527},9],['subway','1904 \u00b7 subway',{x:0.5,y:0.5},10],
+  ['collider','2008 \u00b7 cern',{x:0.5,y:0.508},9],['station','2000 \u00b7 orbit',{x:0.5,y:0.528},8]],LNZ=Math.log(9);
+var LIST=[],V=[];
+function views(A){V=LIST.map(function(D){var c=D.c,aw=2*Math.min(c.x,1-c.x)*D.w,ah=2*Math.min(c.y,1-c.y)*D.h,wpx,hpx;
+  if(aw/ah>A){hpx=ah;wpx=hpx*A;}else{wpx=aw;hpx=wpx/A;}return {w:wpx/D.w,h:hpx/D.h};});}
+function samp(i,x,y,fx,fy,sc,depth,boost){var D=LIST[i],c=D.c,v=V[i],Z=D.z,u=c.x+(x-0.5)*v.w*sc,w=c.y+(y-0.5)*v.h*sc,
+  hx=fx*v.w*sc*D.w*0.5,hy=fy*v.h*sc*D.h*0.5,px=u*D.w,py=w*D.h,val=tone(D,boxAvg(D,px-hx,py-hy,px+hx,py+hy));
+  if(depth<3){var X=0.5+(x-0.5)*sc*Z,Y=0.5+(y-0.5)*sc*Z;
+    if(X>0&&X<1&&Y>0&&Y<1){var m=sstep(0,0.2,Math.min(X,1-X,Y,1-Y));if(boost>m)m=boost;
+      if(m>0.001)val=lerp(val,samp((i+1)%LIST.length,X,Y,fx*sc*Z,fy*sc*Z,1,depth+1,0),m);}}
+  return val;}
+function render(g,P){var n=LIST.length,i=Math.floor(P),f=P-i;i=((i%n)+n)%n;var sc=Math.pow(LIST[i].z,-f),cols=g.cols,rows=g.rows,fx=1/cols,fy=1/rows,boost=sstep(0.55,1,f),lum=g.lum;
+  for(var r=0;r<rows;r++){var y=(r+0.5)/rows;for(var c=0;c<cols;c++)lum[r*cols+c]=samp(i,(c+0.5)/cols,y,fx,fy,sc,0,boost);}
+  return {i:i,f:f};}
+
+/* ---------- motion: scroll, swipe and keys push; idle, it cruises ---------- */
+var scr=document.getElementById('scr'),cv=document.getElementById('cv'),ctx=cv.getContext('2d'),eraEl=document.getElementById('era'),depthEl=document.getElementById('depth'),hint=document.getElementById('hint');
+var G=null,P=0,vel=0,lastIn=-99,raf=0,lastT=0,lastEra=-1,moved=0,ready=false;
+if(matchMedia('(pointer:coarse)').matches)hint.textContent='swipe up to go further in';
+var CRUISE=0.055,MAXV=1.4,DRAG=1.6;
+function nowS(){return performance.now()/1000;}
+function push(d){vel=clamp(vel+d,-MAXV,MAXV);lastIn=nowS();kick();}
+function radial(idx,l){var c=idx%G.cols,r=(idx/G.cols)|0,s=Math.abs(vel)/MAXV;
+  if(s>0.25&&h2(c,r,(P*40)|0)<(s-0.25)*0.9){var a=Math.atan2((r+0.5-G.rows/2)*1.85,c+0.5-G.cols/2);if(a<0)a+=Math.PI;var e=a/Math.PI;return e<0.125||e>0.875?'-':e<0.375?'\\':e<0.625?'|':'/';}
+  return RAMP[1+Math.min(8,(l*9)|0)];}
+function layout(){var w=scr.clientWidth,h=scr.clientHeight,W=Math.max(2,Math.round(w*DPR)),H=Math.max(2,Math.round(h*DPR));
+  if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  G=makeGrid(W,H,Math.round(clamp(w/(w<640?6:7.5),56,200)));views(W/H);}
+function frame(now,dt){
+  if(!RM){var idle=now-lastIn>1.6,want=idle?CRUISE:0;vel+=(want-vel)*(1-Math.exp(-dt*(idle?0.8:DRAG)));P+=vel*dt*LNZ/Math.log(LIST[((Math.floor(P)%LIST.length)+LIST.length)%LIST.length].z);moved+=Math.abs(vel*dt);}
+  var st=render(G,P);drawGrid(ctx,G,0.035,radial);glow(ctx,0.34);
+  if(st.i!==lastEra){eraEl.textContent=ERAS[st.i][1];lastEra=st.i;}
+  eraEl.style.opacity=(sstep(0.02,0.15,st.f)*(1-sstep(0.78,0.95,st.f))).toFixed(3);
+  depthEl.textContent=String(Math.floor(Math.max(0,P)*1000)).padStart(6,'0')+' m';
+  hint.style.opacity=moved>1.2||RM?'0':'1';}
+function loop(ts){raf=0;var now=ts/1000,dt=lastT?Math.min(0.1,now-lastT):0.016;lastT=now;if(ready)frame(now,dt);if(!RM&&!document.hidden)kick();else lastT=0;}
+function kick(){if(!raf)raf=requestAnimationFrame(loop);}
+function step(d){if(RM){P=Math.max(0,Math.round(P)+d);lastIn=nowS();if(ready)frame(nowS(),0);}else push(d*0.9);}
+
+window.addEventListener('wheel',function(e){e.preventDefault();var d=e.deltaMode===1?e.deltaY*16:e.deltaMode===2?e.deltaY*400:e.deltaY;
+  if(RM){if(Math.abs(d)>20)step(d>0?1:-1);return;}push(clamp(d,-120,120)*0.0022);},{passive:false});
+var ty=null;
+scr.addEventListener('touchstart',function(e){ty=e.touches[0].clientY;},{passive:true});
+scr.addEventListener('touchmove',function(e){if(ty===null)return;var y=e.touches[0].clientY,d=ty-y;ty=y;if(RM){if(Math.abs(d)>40)step(d>0?1:-1);return;}push(d*0.006);e.preventDefault();},{passive:false});
+scr.addEventListener('touchend',function(){ty=null;});
+document.addEventListener('keydown',function(e){if(e.metaKey||e.ctrlKey||e.altKey)return;var k=e.key;
+  if(k==='ArrowDown'||k==='ArrowRight'||k==='PageDown'||k===' '){step(1);e.preventDefault();}
+  else if(k==='ArrowUp'||k==='ArrowLeft'||k==='PageUp'){step(-1);e.preventDefault();}});
+document.addEventListener('visibilitychange',function(){if(!document.hidden){lastT=0;kick();}});
+new ResizeObserver(function(){if(!LIST.length)return;layout();if(RM)frame(nowS(),0);else kick();}).observe(scr);
+RMQ.addEventListener&&RMQ.addEventListener('change',function(e){RM=e.matches;vel=0;if(ready)frame(nowS(),0);kick();});
+
+var fontP=document.fonts&&document.fonts.load?document.fonts.load('16px "JetBrains Mono"'):Promise.resolve();
+Promise.all(ERAS.map(function(e){return loadImg('eras/'+e[0]+'.jpg').then(lumData);})).then(function(ds){
+  ds.forEach(function(D,i){D.c=ERAS[i][2];D.z=ERAS[i][3];});LIST=ds;
+  return Promise.race([fontP,new Promise(function(r){setTimeout(r,1500);})]);
+}).then(function(){layout();ready=true;if(RM)frame(nowS(),0);else kick();});
+})();
+</script>

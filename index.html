@@ -106,7 +106,7 @@ var MOUTH=(function(){var sx=0,sy=0,n=0,x0=1e9,x1=-1,y0=1e9,y1=-1;for(var r=0;r<
 
 /* ---------- state ---------- */
 var scr=document.getElementById('scr'),cv=document.getElementById('cv'),ctx=cv.getContext('2d'),glowEl=document.getElementById('glow'),mail=document.getElementById('mail');
-var G=null,cave=null,cx0=0,cy0=0,nameRow=0,CH=null,CHV=null,CHC={x:0.503,y:0.527},S0=4,MB=null,t0=0,lastNow=0,stoke=0,sparks=[],nextSpark=0,raf=0,lastT=0,acc=0;
+var warp=0,rate=1,ffwd=false,G=null,cave=null,cx0=0,cy0=0,nameRow=0,CH=null,CHV=null,CHC={x:0.503,y:0.527},S0=4,MB=null,t0=0,lastNow=0,stoke=0,sparks=[],nextSpark=0,raf=0,lastT=0,acc=0;
 function nowS(){return performance.now()/1000;}
 function put(c,r,s,l,p){if(r<0||r>=G.rows)return;for(var i=0;i<s.length;i++){var cc=c+i;if(cc<0||cc>=G.cols)continue;var ch=s[i];if(ch===' ')continue;var id=r*G.cols+cc;G.lum[id]=l;G.chr[id]=ch;G.pi[id]=p||0;}}
 function typed(s,t0,cps,t){if(t<t0)return '';return s.slice(0,Math.min(s.length,Math.floor((t-t0)*cps)));}
@@ -145,7 +145,10 @@ function introFrame(st){var cols=G.cols,rows=G.rows,k=sstep(HOLD,PULL,st),s=Math
 function fireAt(now){return {x:G.cols*0.5+(RM?0:(vn2(now*0.35,1,61)-0.5)*G.cols*0.05),y:G.rows+1.5};}
 function flick(now){return RM?1:0.84+0.1*vn2(now*6.5,0.5,3)+0.06*vn2(now*17,0.5,5);}
 
-function frame(now,dt){var st=RM?END+1:now-t0,i;lastNow=now;
+function frame(now,dt){
+  /* a tap during the intro never jumps: it plays the rest of the pull-back faster, easing in and out of the speed-up */
+  if(!RM&&dt>0){var st0=now-t0+warp;if(ffwd&&st0>=PULL-0.4)ffwd=false;rate+=((ffwd?4:1)-rate)*(1-Math.exp(-dt*4));if(rate>1.001)warp+=dt*(rate-1);}
+  var st=RM?END+1:now-t0+warp,i;lastNow=now;
   G.lum.fill(0);G.pi.fill(0);
   /* cave: the pull-back from Chauvet (or the boot lab print), then the water moves and a little shimmer crosses the rock */
   if(INTRO&&!RM&&st<PULL)introFrame(st);
@@ -179,7 +182,7 @@ function loop(ts){raf=0;var now=ts/1000,dt=lastT?Math.min(0.1,now-lastT):0;lastT
   if(acc>=1/30||!dt){frame(now,acc);acc=0;}
   if(!RM&&!document.hidden)kick();else lastT=0;}
 function kick(){if(!raf)raf=requestAnimationFrame(loop);}
-function stokeIt(){if(RM)return;var st=nowS()-t0;if(st<END-LIGHT_D*0.5){t0=nowS()-END;return;}stoke=1;nextSpark=0;
+function stokeIt(){if(RM)return;var st=nowS()-t0+warp;if(INTRO&&st<PULL-0.4){ffwd=true;kick();return;}stoke=1;nextSpark=0;
   var F=fireAt(nowS());for(var i=0;i<5;i++)sparks.push({x:F.x+(Math.random()-0.5)*G.cols*0.1,y:G.rows-0.5-Math.random()*2,vy:3+Math.random()*3,life:0,max:2+Math.random()*2.5,s:Math.random()*99});kick();}
 document.addEventListener('keydown',function(e){if(e.metaKey||e.ctrlKey||e.altKey)return;if(e.key==='.'){stokeIt();e.preventDefault();}});
 scr.addEventListener('pointerdown',function(e){if(e.target.closest('a'))return;stokeIt();});

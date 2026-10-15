@@ -86,22 +86,60 @@ function caveFit(maxRows,maxCols){var s=Math.min(1,maxRows/CH0,maxCols/CW0);
     v[r*w+c]=ar>0?Math.min(1,Math.pow(sum/ar,0.8)*1.08):0;}
   return {w:w,h:h,v:v,water:Math.round(WATER0*h/CH0)};}
 
+/* ---------- a real cave first (the journey's Chauvet), luminance + summed-area table ---------- */
+function loadImg(src){return new Promise(function(res,rej){var im=new Image();im.onload=function(){res(im);};im.onerror=rej;im.src=src;});}
+function lumData(im){var w=im.naturalWidth,h=im.naturalHeight,c=document.createElement('canvas');c.width=w;c.height=h;
+  var x=c.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);
+  var d=x.getImageData(0,0,w,h).data,L=new Float32Array(w*h),W1=w+1,S=new Float64Array(W1*(h+1)),hist=new Uint32Array(256);
+  for(var yy=0;yy<h;yy++){var row=0;for(var xx=0;xx<w;xx++){var i=yy*w+xx,p=i*4,v=(0.299*d[p]+0.587*d[p+1]+0.114*d[p+2])/255;L[i]=v;hist[(v*255)|0]++;row+=v;S[(yy+1)*W1+xx+1]=S[yy*W1+xx+1]+row;}}
+  var tot=w*h,a=0,lo=0,hi=1,got=false;for(var b=0;b<256;b++){a+=hist[b];if(!got&&a>=tot*0.01){lo=b/255;got=true;}if(a>=tot*0.995){hi=b/255;break;}}
+  if(hi-lo<0.2)hi=Math.min(1,lo+0.2);return {w:w,h:h,L:L,S:S,W1:W1,lo:lo,hi:hi};}
+function bilin(D,x,y){x=clamp(x,0,D.w-1.001);y=clamp(y,0,D.h-1.001);var xi=x|0,yi=y|0,fx=x-xi,fy=y-yi,i=yi*D.w+xi,L=D.L;
+  return (L[i]*(1-fx)+L[i+1]*fx)*(1-fy)+(L[i+D.w]*(1-fx)+L[i+D.w+1]*fx)*fy;}
+function boxAvg(D,x0,y0,x1,y1){if(x1-x0<1.3&&y1-y0<1.3)return bilin(D,(x0+x1)*0.5-0.5,(y0+y1)*0.5-0.5);
+  var a=clamp(Math.floor(x0),0,D.w-1),b=clamp(Math.ceil(x1),a+1,D.w),c=clamp(Math.floor(y0),0,D.h-1),e=clamp(Math.ceil(y1),c+1,D.h),S=D.S,W1=D.W1;
+  return (S[e*W1+b]-S[c*W1+b]-S[e*W1+a]+S[c*W1+a])/((b-a)*(e-c));}
+function tone(D,v){v=(v-D.lo)/(D.hi-D.lo);return v<0?0:v>1?1:Math.pow(v,0.95);}
+/* the mark's bright mouth: centroid and extent of its solid cells, in v1 art cells */
+var MOUTH=(function(){var sx=0,sy=0,n=0,x0=1e9,x1=-1,y0=1e9,y1=-1;for(var r=0;r<CH0*0.6;r++)for(var c=0;c<CW0;c++)if(CV0[r*CW0+c]>=0.85){sx+=c;sy+=r;n++;if(c<x0)x0=c;if(c>x1)x1=c;if(r<y0)y0=r;if(r>y1)y1=r;}
+  return {x:sx/n+0.5,y:sy/n+0.5,w:x1-x0+1,h:y1-y0+1};})();
+
 /* ---------- state ---------- */
 var scr=document.getElementById('scr'),cv=document.getElementById('cv'),ctx=cv.getContext('2d'),glowEl=document.getElementById('glow'),mail=document.getElementById('mail');
-var G=null,cave=null,cx0=0,cy0=0,nameRow=0,t0=0,lastNow=0,stoke=0,sparks=[],nextSpark=0,raf=0,lastT=0,acc=0;
+var G=null,cave=null,cx0=0,cy0=0,nameRow=0,CH=null,CHV=null,CHC={x:0.503,y:0.527},S0=4,MB=null,t0=0,lastNow=0,stoke=0,sparks=[],nextSpark=0,raf=0,lastT=0,acc=0;
 function nowS(){return performance.now()/1000;}
 function put(c,r,s,l,p){if(r<0||r>=G.rows)return;for(var i=0;i<s.length;i++){var cc=c+i;if(cc<0||cc>=G.cols)continue;var ch=s[i];if(ch===' ')continue;var id=r*G.cols+cc;G.lum[id]=l;G.chr[id]=ch;G.pi[id]=p||0;}}
 function typed(s,t0,cps,t){if(t<t0)return '';return s.slice(0,Math.min(s.length,Math.floor((t-t0)*cps)));}
 function center(s){return Math.max(0,Math.round((G.cols-s.length)/2));}
 
 /* timeline, in seconds from start */
-var PRINT=2.4,NAME_AT=PRINT+0.35,URL_AT=NAME_AT+0.8,LIGHT_AT=NAME_AT+0.2,LIGHT_D=3.2,END=LIGHT_AT+LIGHT_D;
+/* with the photo: fade in on the Chauvet tunnel, hold, pull back out through the mouth into the mark.
+   without it (image failed, or reduced motion): the boot lab print, row by row. */
+var PRINT=2.4,FADE=0.8,HOLD=2.6,PULL=6.6,INTRO=false,BASE,NAME_AT,URL_AT,LIGHT_AT,LIGHT_D=3.2,END;
+function setTimeline(intro){INTRO=intro;BASE=intro?PULL:PRINT;NAME_AT=BASE+0.35;URL_AT=NAME_AT+0.8;LIGHT_AT=NAME_AT+0.2;END=LIGHT_AT+LIGHT_D;}
+setTimeline(false);
 
 function layout(){var w=scr.clientWidth,h=scr.clientHeight,narrow=w<640,W=Math.max(2,Math.round(w*DPR)),H=Math.max(2,Math.round(h*DPR));
   if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
   var cols=Math.round(clamp(w/(narrow?6.2:8.6),44,240));G=mkGrid(W,H,cols);
   cave=caveFit(Math.max(10,G.rows-(narrow?9:7)),G.cols-(narrow?8:4));
-  var block=cave.h+3;cx0=Math.round((G.cols-cave.w)/2);cy0=Math.max(1,Math.round((G.rows-block)/2)-(narrow?2:0));nameRow=Math.min(G.rows-3,cy0+cave.h+1);}
+  var block=cave.h+3;cx0=Math.round((G.cols-cave.w)/2);cy0=Math.max(1,Math.round((G.rows-block)/2)-(narrow?2:0));nameRow=Math.min(G.rows-3,cy0+cave.h+1);
+  var kx=cave.w/CW0,ky=cave.h/CH0;MB={x:cx0+MOUTH.x*kx,y:cy0+MOUTH.y*ky,w:MOUTH.w*kx,h:MOUTH.h*ky};
+  S0=clamp(Math.min(G.cols/MB.w,G.rows/MB.h)*1.02,1.6,9);
+  if(CH){var A=W/H,aw=2*Math.min(CHC.x,1-CHC.x)*CH.w,ah=2*Math.min(CHC.y,1-CHC.y)*CH.h,wp,hp;if(aw/ah>A){hp=ah;wp=hp*A;}else{wp=aw;hp=wp/A;}CHV={w:wp/CH.w,h:hp/CH.h};}}
+function caveAt(x,y){if(x<0||y<0||x>cave.w-1||y>cave.h-1)return 0;var x0=Math.floor(x),y0=Math.floor(y),x1=Math.min(x0+1,cave.w-1),y1=Math.min(y0+1,cave.h-1),fx=x-x0,fy=y-y0,w=cave.w,v=cave.v;
+  return (v[y0*w+x0]*(1-fx)+v[y0*w+x1]*fx)*(1-fy)+(v[y1*w+x0]*(1-fx)+v[y1*w+x1]*fx)*fy;}
+/* the camera starts inside the photo, which fills the screen and covers the mark's mouth; it pulls back
+   (zoom S0 -> 1 while the photo itself widens, the mouth sliding from screen centre to its place), the photo narrows to the mouth's shape
+   and gives way to the mark. At the end every cell is exactly the still mark, so the splash takes over with no cut. */
+function introFrame(st){var cols=G.cols,rows=G.rows,k=sstep(HOLD,PULL,st),s=Math.pow(S0,1-k),Ax=lerp(cols/2,MB.x,k),Ay=lerp(rows/2,MB.y,k),
+  ww=cols/S0,wh=rows/S0,q=lerp(0.84-0.06*sstep(0,HOLD,st),1,k),pf=sstep(0,FADE,st)*(1-sstep(0.55,0.95,k)),wb=sstep(0.2,0.7,k),ma=sstep(0.3,0.75,k),
+  hx=CHV.w*q*CH.w/(ww*s)*0.5,hy=CHV.h*q*CH.h/(wh*s)*0.5;
+  for(var r=0;r<rows;r++){var wy=MB.y+(r+0.5-Ay)/s,v=0.5+(wy-MB.y)/wh;
+    for(var c=0;c<cols;c++){var wx=MB.x+(c+0.5-Ax)/s,mv=caveAt(wx-cx0-0.5,wy-cy0-0.5),val=mv*ma,u=0.5+(wx-MB.x)/ww;
+      if(pf>0&&u>0&&u<1&&v>0&&v<1){var pa=pf*sstep(0,0.08,Math.min(u,1-u,v,1-v))*lerp(1,sstep(0.5,0.85,mv),wb);
+        if(pa>0.002){var ix=(CHC.x+(u-0.5)*CHV.w*q)*CH.w,iy=(CHC.y+(v-0.5)*CHV.h*q)*CH.h;val=lerp(val,tone(CH,boxAvg(CH,ix-hx,iy-hy,ix+hx,iy+hy)),pa);}}
+      var kq=clamp(Math.round(val*9),0,9);if(!kq)continue;var id=r*cols+c;G.lum[id]=clamp(0.25+0.75*val,0,1);G.chr[id]=RAMP[kq];}}}
 
 /* the fire sits just below the frame, centred, and drifts a little */
 function fireAt(now){return {x:G.cols*0.5+(RM?0:(vn2(now*0.35,1,61)-0.5)*G.cols*0.05),y:G.rows+1.5};}
@@ -109,13 +147,15 @@ function flick(now){return RM?1:0.84+0.1*vn2(now*6.5,0.5,3)+0.06*vn2(now*17,0.5,
 
 function frame(now,dt){var st=RM?END+1:now-t0,i;lastNow=now;
   G.lum.fill(0);G.pi.fill(0);
-  /* cave: printed row by row, then the water moves and a little shimmer crosses the rock */
-  var per=PRINT/cave.h,alive=RM?0:sstep(PRINT,PRINT+1.2,st),tt=now;
-  for(var r=0;r<cave.h;r++){var rs=r*per;if(st<rs)break;var gr=cy0+r;if(gr<0||gr>=G.rows)continue;var vis=clamp((st-rs)/(per*1.1),0,1)*cave.w,boost=RM?0:0.4*clamp(1-(st-rs-per)/0.7,0,1),isW=r>=cave.water,dx=0;
+  /* cave: the pull-back from Chauvet (or the boot lab print), then the water moves and a little shimmer crosses the rock */
+  if(INTRO&&!RM&&st<PULL)introFrame(st);
+  else{var still=INTRO||RM,per=PRINT/cave.h,alive=RM?0:sstep(BASE,BASE+1.2,st),tt=now;
+  for(var r=0;r<cave.h;r++){var rs=still?0:r*per;if(st<rs)break;var gr=cy0+r;if(gr<0||gr>=G.rows)continue;var vis=still?cave.w:clamp((st-rs)/(per*1.1),0,1)*cave.w,boost=still?0:0.4*clamp(1-(st-rs-per)/0.7,0,1),isW=r>=cave.water,dx=0;
     if(isW){var dep=clamp((r-cave.water)/(cave.h-cave.water),0,1);dx=alive*(0.6+1.6*dep)*Math.sin(tt*1.9-r*1.15)*0.6;}
     for(var c=0;c<vis;c++){var u=c+dx,u0=Math.floor(u),fu=u-u0,a=(u0>=0&&u0<cave.w)?cave.v[r*cave.w+u0]:0,b=(u0+1>=0&&u0+1<cave.w)?cave.v[r*cave.w+u0+1]:0,v=a+(b-a)*fu;
       if(!isW){var sh=vn2(c*0.35+tt*0.35,r*0.2-tt*0.6,3)*0.6+vn2(c*0.9-tt*0.5,r*0.5,4)*0.4;v*=1-alive*0.3*sh*sh*1.6;}else v*=1-alive*0.25*(0.5+0.5*Math.sin(c*0.6-tt*2.4+r*0.3));
-      var k=clamp(Math.round(v*9),0,9);if(!k)continue;var gc=cx0+c;if(gc<0||gc>=G.cols)continue;var id=gr*G.cols+gc;G.lum[id]=clamp(0.25+0.75*v+boost,0,1);G.chr[id]=RAMP[k];G.pi[id]=boost>0.05?9:0;}}
+      var k=clamp(Math.round(v*9),0,9);if(!k)continue;var gc=cx0+c;if(gc<0||gc>=G.cols)continue;var id=gr*G.cols+gc;G.lum[id]=clamp(0.25+0.75*v+boost,0,1);G.chr[id]=RAMP[k];G.pi[id]=boost>0.05?9:0;}}}
+  if(INTRO&&st>=PULL){try{sessionStorage.setItem('kv-intro','1');}catch(e){}}
   /* name and address */
   var nm='K A V E R N E',u2='kaverne.co';
   if(st>NAME_AT)put(center(nm),nameRow,typed(nm,NAME_AT,18,st),0.95);
@@ -147,8 +187,11 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden){las
 new ResizeObserver(function(){if(!G)return;layout();if(RM)frame(nowS(),0);else kick();}).observe(scr);
 RMQ.addEventListener&&RMQ.addEventListener('change',function(e){RM=e.matches;layout();frame(nowS(),0);kick();});
 
-function boot(){layout();t0=nowS()+0.5;if(RM){frame(nowS(),0);mail.classList.add('on');}else kick();}
+function boot(){var seen=false;try{seen=sessionStorage.getItem('kv-intro')==='1';}catch(e){}
+  setTimeline(!!CH);layout();t0=nowS()+0.5;if(INTRO&&seen)t0=nowS()-PULL;
+  if(RM){frame(nowS(),0);mail.classList.add('on');}else kick();}
 var fl0=document.fonts&&document.fonts.load?document.fonts.load('16px "JetBrains Mono"'):Promise.resolve();
-Promise.race([fl0,new Promise(function(r){setTimeout(r,1500);})]).then(boot);
+var ch0=RM?Promise.resolve():loadImg('journey/eras/chauvet.jpg').then(function(im){CH=lumData(im);},function(){});
+Promise.race([Promise.all([fl0,ch0]),new Promise(function(r){setTimeout(r,2500);})]).then(boot);
 })();
 </script>

@@ -113,7 +113,7 @@ function typed(s,t0,cps,t){if(t<t0)return '';return s.slice(0,Math.min(s.length,
 function center(s){return Math.max(0,Math.round((G.cols-s.length)/2));}
 
 /* timeline, in seconds from start */
-/* with the photo: fade in on the Chauvet tunnel, hold, pull back out through the mouth into the mark.
+/* with the photo: fade in on the Chauvet tunnel, hold, walk forward out of it into the light, which becomes the mark.
    without it (image failed, or reduced motion): the boot lab print, row by row. */
 var PRINT=2.4,FADE=0.8,HOLD=2.6,PULL=6.6,INTRO=false,BASE,NAME_AT,URL_AT,LIGHT_AT,LIGHT_D=3.2,END;
 function setTimeline(intro){INTRO=intro;BASE=intro?PULL:PRINT;NAME_AT=BASE+0.35;URL_AT=NAME_AT+0.8;LIGHT_AT=NAME_AT+0.2;END=LIGHT_AT+LIGHT_D;}
@@ -129,16 +129,18 @@ function layout(){var w=scr.clientWidth,h=scr.clientHeight,narrow=w<640,W=Math.m
   if(CH){var A=W/H,aw=2*Math.min(CHC.x,1-CHC.x)*CH.w,ah=2*Math.min(CHC.y,1-CHC.y)*CH.h,wp,hp;if(aw/ah>A){hp=ah;wp=hp*A;}else{wp=aw;hp=wp/A;}CHV={w:wp/CH.w,h:hp/CH.h};}}
 function caveAt(x,y){if(x<0||y<0||x>cave.w-1||y>cave.h-1)return 0;var x0=Math.floor(x),y0=Math.floor(y),x1=Math.min(x0+1,cave.w-1),y1=Math.min(y0+1,cave.h-1),fx=x-x0,fy=y-y0,w=cave.w,v=cave.v;
   return (v[y0*w+x0]*(1-fx)+v[y0*w+x1]*fx)*(1-fy)+(v[y1*w+x0]*(1-fx)+v[y1*w+x1]*fx)*fy;}
-/* the camera starts inside the photo, which fills the screen and covers the mark's mouth; it pulls back
-   (zoom S0 -> 1 while the photo itself widens, the mouth sliding from screen centre to its place), the photo narrows to the mouth's shape
-   and gives way to the mark. At the end every cell is exactly the still mark, so the splash takes over with no cut. */
-function introFrame(st){var cols=G.cols,rows=G.rows,k=sstep(HOLD,PULL,st),s=Math.pow(S0,1-k),Ax=lerp(cols/2,MB.x,k),Ay=lerp(rows/2,MB.y,k),
-  ww=cols/S0,wh=rows/S0,q=lerp(0.84-0.06*sstep(0,HOLD,st),1,k),pf=sstep(0,FADE,st)*(1-sstep(0.55,0.95,k)),wb=sstep(0.2,0.7,k),ma=sstep(0.3,0.75,k),
-  hx=CHV.w*q*CH.w/(ww*s)*0.5,hy=CHV.h*q*CH.h/(wh*s)*0.5;
-  for(var r=0;r<rows;r++){var wy=MB.y+(r+0.5-Ay)/s,v=0.5+(wy-MB.y)/wh;
-    for(var c=0;c<cols;c++){var wx=MB.x+(c+0.5-Ax)/s,mv=caveAt(wx-cx0-0.5,wy-cy0-0.5),val=mv*ma,u=0.5+(wx-MB.x)/ww;
-      if(pf>0&&u>0&&u<1&&v>0&&v<1){var pa=pf*sstep(0,0.08,Math.min(u,1-u,v,1-v))*lerp(1,sstep(0.5,0.85,mv),wb);
-        if(pa>0.002){var ix=(CHC.x+(u-0.5)*CHV.w*q)*CH.w,iy=(CHC.y+(v-0.5)*CHV.h*q)*CH.h;val=lerp(val,tone(CH,boxAvg(CH,ix-hx,iy-hy,ix+hx,iy+hy)),pa);}}
+/* the camera starts in the Chauvet tunnel and walks toward the light at its end: the photo zooms in on its
+   vanishing point until the light fills the screen. Then the light gathers into the mark: dark parts of the mark
+   settle first, its bright mouth last. At the end every cell is exactly the still mark, so the splash takes over
+   with no cut. */
+function introFrame(st){var cols=G.cols,rows=G.rows,k=sstep(HOLD,PULL,st),kz=sstep(0,0.72,k),
+  q=(0.84-0.04*sstep(0,HOLD,st))*Math.pow(0.05/0.8,kz),ex=sstep(0.38,0.7,k),fin=sstep(0,FADE,st),
+  hx=CHV.w*q*CH.w/cols*0.5,hy=CHV.h*q*CH.h/rows*0.5;
+  for(var r=0;r<rows;r++){var v=(r+0.5)/rows,gy=r+0.5-cy0-0.5;
+    for(var c=0;c<cols;c++){var u=(c+0.5)/cols,val=0,m=0,mv=0;
+      if(k<1){var ix=(CHC.x+(u-0.5)*CHV.w*q)*CH.w,iy=(CHC.y+(v-0.5)*CHV.h*q)*CH.h,pv=tone(CH,boxAvg(CH,ix-hx,iy-hy,ix+hx,iy+hy));
+        val=(pv+(1-pv)*0.92*ex)*fin;}
+      if(k>0.68){var e=(k-0.68)/0.32;mv=caveAt(c+0.5-cx0-0.5,gy);m=sstep(0,1,e*(1+0.8*(1-mv)));val=lerp(val,mv,m);}
       var kq=clamp(Math.round(val*9),0,9);if(!kq)continue;var id=r*cols+c;G.lum[id]=clamp(0.25+0.75*val,0,1);G.chr[id]=RAMP[kq];}}}
 
 /* the fire sits just below the frame, centred, and drifts a little */
@@ -146,11 +148,11 @@ function fireAt(now){return {x:G.cols*0.5+(RM?0:(vn2(now*0.35,1,61)-0.5)*G.cols*
 function flick(now){return RM?1:0.84+0.1*vn2(now*6.5,0.5,3)+0.06*vn2(now*17,0.5,5);}
 
 function frame(now,dt){
-  /* a tap during the intro never jumps: it plays the rest of the pull-back faster, easing in and out of the speed-up */
+  /* a tap during the intro never jumps: it plays the rest of the walk out faster, easing in and out of the speed-up */
   if(!RM&&dt>0){var st0=now-t0+warp;if(ffwd&&st0>=PULL-0.4)ffwd=false;rate+=((ffwd?4:1)-rate)*(1-Math.exp(-dt*4));if(rate>1.001)warp+=dt*(rate-1);}
   var st=RM?END+1:now-t0+warp,i;lastNow=now;
   G.lum.fill(0);G.pi.fill(0);
-  /* cave: the pull-back from Chauvet (or the boot lab print), then the water moves and a little shimmer crosses the rock */
+  /* cave: the walk out of Chauvet (or the boot lab print), then the water moves and a little shimmer crosses the rock */
   if(INTRO&&!RM&&st<PULL)introFrame(st);
   else{var still=INTRO||RM,per=PRINT/cave.h,alive=RM?0:sstep(BASE,BASE+1.2,st),tt=now;
   for(var r=0;r<cave.h;r++){var rs=still?0:r*per;if(st<rs)break;var gr=cy0+r;if(gr<0||gr>=G.rows)continue;var vis=still?cave.w:clamp((st-rs)/(per*1.1),0,1)*cave.w,boost=still?0:0.4*clamp(1-(st-rs-per)/0.7,0,1),isW=r>=cave.water,dx=0;

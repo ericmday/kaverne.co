@@ -1,0 +1,298 @@
+<!doctype html>
+<title>Kaverne · Ignition</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="robots" content="noindex">
+<meta name="description" content="A page of tokens. Burn them and there is a picture behind.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* motion lab "ignition", as tokens: the page is a model's token stream, and burning it lights what is behind */
+:root{
+  color-scheme:dark;
+  --bg:#0A0A0A; --chrome:#5E5E5E; --faint:#3A3A3A; --hi:#E6E6E6; --ember:#E07A34;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs:clamp(12.5px,1.12vw,18px);
+  --m:clamp(20px,8vw,120px);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--chrome);font:400 var(--fs)/1.7 var(--mono);-webkit-text-size-adjust:100%;font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0;overflow:hidden}
+.sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.scr{position:fixed;inset:0;overflow:hidden}
+.top,.bot{position:absolute;left:var(--m);right:var(--m);display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:.78em;line-height:1.4;z-index:2}
+.top{top:calc(var(--m) * .55)}
+.bot{bottom:calc(var(--m) * .55)}
+.mark,.count{color:var(--chrome);white-space:nowrap}
+.count{font-variant-numeric:tabular-nums;text-align:right}
+.mail{color:var(--chrome);text-decoration:none;white-space:nowrap;transition:color .4s}
+.mail:hover,.mail:focus-visible{color:var(--hi)}
+.modes{display:flex;align-items:baseline;gap:.9em;white-space:nowrap}
+.modes button{font:inherit;color:var(--faint);background:none;border:0;padding:6px 0;margin:0;cursor:pointer;transition:color .4s}
+.modes button:hover,.modes button:focus-visible{color:var(--hi)}
+.modes button[aria-pressed="true"]{color:var(--chrome)}
+.modes .sep{color:var(--faint)}
+:focus-visible{outline:1px solid var(--ember);outline-offset:3px}
+.note{position:absolute;left:0;right:0;bottom:calc(var(--m) * .55 + 1.9em);text-align:center;font-size:.78em;color:var(--chrome);opacity:0;transition:opacity 1.6s ease;pointer-events:none;z-index:2}
+.note.on{opacity:1}
+/* the page itself: a character grid inside the margins */
+.page{position:absolute;left:var(--m);right:var(--m);top:calc(var(--m) * 1.4);bottom:calc(var(--m) * .55 + 3.6em)}
+.page canvas{position:absolute;left:0;top:0;display:block;touch-action:none;cursor:crosshair}
+@media (max-width:640px){.bot{flex-wrap:wrap;row-gap:.4em}.page{bottom:calc(var(--m) * .55 + 5.2em)}.note{bottom:calc(var(--m) * .55 + 3.4em)}}
+@media (prefers-reduced-motion:reduce){.mail,.modes button,.note{transition:none}}
+</style>
+
+<main class="scr">
+  <h1 class="sr">Kaverne: ignition</h1>
+  <p class="sr">A page of text shown as a model's tokens. Move the pointer, or drag on a touch screen, to burn the tokens; behind them is a picture lit by the burning. The tokens are written again after a while. Three versions: match, stream and frame.</p>
+  <div class="top"><span class="mark">kaverne &middot; ignition</span><span class="count" id="count" aria-live="off">0 tokens burned here</span></div>
+  <div class="page" id="page"><canvas id="cv" aria-hidden="true"></canvas></div>
+  <div class="note" id="note" aria-live="polite"></div>
+  <div class="bot">
+    <nav class="modes" aria-label="Version"><button type="button" data-m="match" aria-pressed="true">match</button><span class="sep" aria-hidden="true">&middot;</span><button type="button" data-m="stream" aria-pressed="false">stream</button><span class="sep" aria-hidden="true">&middot;</span><button type="button" data-m="frame" aria-pressed="false">frame</button></nav>
+    <a class="mail" href="mailto:hello@kaverne.co">hello@kaverne.co</a>
+  </div>
+</main>
+
+<script>
+(function(){
+'use strict';
+var RMQ=matchMedia('(prefers-reduced-motion: reduce)'),RM=RMQ.matches;
+var DPR=Math.min(2,window.devicePixelRatio||1);
+var MONO='"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+var RAMP=' .:-=+*#%@'.split(''),NB=24;
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function lerp(a,b,k){return a+(b-a)*k;}
+function sstep(a,b,v){var k=clamp((v-a)/(b-a),0,1);return k*k*(3-2*k);}
+function h2(x,y,s){var n=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263)+Math.imul(s|0,1442695041))|0;n=Math.imul(n^(n>>>13),1274126177);n^=n>>>16;return (n>>>0)/4294967296;}
+function vn2(x,y,s){var xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi,ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy);
+  var a=h2(xi,yi,s),b=h2(xi+1,yi,s),c=h2(xi,yi+1,s),d=h2(xi+1,yi+1,s);return (a*(1-ux)+b*ux)*(1-uy)+(c*(1-ux)+d*ux)*uy;}
+function rgb(a){return 'rgb('+(a[0]|0)+','+(a[1]|0)+','+(a[2]|0)+')';}
+function pal3(a,b,c){var o=[];for(var i=0;i<NB;i++){var k=i/(NB-1),x,y,t;if(k<0.5){x=a;y=b;t=k*2;}else{x=b;y=c;t=(k-0.5)*2;}o.push(rgb([lerp(x[0],y[0],t),lerp(x[1],y[1],t),lerp(x[2],y[2],t)]));}return o;}
+function mixP(p,q,k){return p.map(function(c,i){var A=c.match(/\d+/g).map(Number),B=q[i].match(/\d+/g).map(Number);return rgb([lerp(A[0],B[0],k),lerp(A[1],B[1],k),lerp(A[2],B[2],k)]);});}
+var P_WHITE=pal3([30,30,30],[128,128,128],[232,232,232]),P_WARM=pal3([40,26,18],[178,120,76],[255,236,212]);
+/* 0 white, 1-3 white->warm, 4 fire, 5 amber (motion lab) */
+var PALS=[P_WHITE,mixP(P_WHITE,P_WARM,0.33),mixP(P_WHITE,P_WARM,0.66),P_WARM,pal3([48,24,12],[190,118,60],[255,236,206]),pal3([44,26,0],[170,104,0],[255,190,60])];
+var RAMPI={};RAMP.forEach(function(c,i){RAMPI[c]=i;});
+
+/* ---------- doom fire (Terminal v2 port, motion lab) ---------- */
+var FMAX=36;
+function Fire(cols,rows){this.src=0.9;this.pd=1.6;this.acc=0;this.s=0;this.bmask=null;this.resize(cols,rows);}
+Fire.prototype.resize=function(cols,rows){this.cols=cols;this.rows=rows;this.FW=cols*2;this.FH=rows*2;this.f=new Float32Array(this.FW*this.FH);this.add=new Float32Array(this.FW);};
+Fire.prototype.step=function(){var FW=this.FW,FH=this.FH,f=this.f,s=++this.s,base=(FH-1)*FW,src=this.src,add=this.add,R=Math.random,pd=this.pd,bm=this.bmask;
+  for(var x=0;x<FW;x++){var fu=0.6*vn2(x*0.03+s*0.02,0.5,11)+0.4*vn2(x*0.09-s*0.03,0.5,23),v=(FMAX*src*(0.7+0.3*fu)+add[x])*(bm?bm[x]:1);f[base+x]=v<0?0:v>FMAX*1.3?FMAX*1.3:v;add[x]*=0.86;}
+  for(var y=1;y<FH;y++){var row=y*FW,up=row-FW;for(var x2=0;x2<FW;x2++){var p=f[row+x2],dx=x2+((R()*3)|0)-1;
+    if(p===0){if(dx<0)dx=0;else if(dx>=FW)dx=FW-1;f[up+dx]=0;continue;}
+    var sway=vn2(x2*0.02,(y+s*1.5)*0.04,9)-0.5;if(R()<Math.abs(sway)*1.3)dx+=sway>0?1:-1;if(dx<0)dx=0;else if(dx>=FW)dx=FW-1;
+    var tn=vn2(x2*0.045,(y+s*2.2)*0.06,5)*0.7+vn2(x2*0.11,(y+s*3)*0.14,6)*0.3,pp=pd*(0.08+2.2*tn*tn*tn),d=(R()<pp?1:0)+(R()<pp*0.3?1:0);f[up+dx]=p>d?p-d:0;}}};
+Fire.prototype.cell=function(c,r){var FW=this.FW,y0=2*r*FW,y1=y0+FW,x=2*c,f=this.f;return (f[y0+x]+f[y0+x+1]+f[y1+x]+f[y1+x+1])*0.25;};
+
+/* ---------- renderer (motion lab) ---------- */
+function drawCells(ctx,G,bg,thr){var n=G.n,K=PALS.length*NB,cnt=G.cnt,ord=G.ord,key=G.key,lum=G.lum,pi=G.pi,cols=G.cols,cw=G.cw,ch=G.ch;
+  if(bg){ctx.fillStyle=bg;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);}else ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);cnt.fill(0);
+  for(var i=0;i<n;i++){var l=lum[i];if(l<thr){key[i]=-1;continue;}if(l>1)l=1;var k=pi[i]*NB+Math.min(NB-1,(l*(NB-1)+0.5)|0);key[i]=k;cnt[k+1]++;}
+  for(var b=0;b<K;b++)cnt[b+1]+=cnt[b];var pos=cnt.slice(0,K);for(var j=0;j<n;j++)if(key[j]>=0)ord[pos[key[j]]++]=j;
+  ctx.font=G.fs.toFixed(2)+'px '+MONO;ctx.textAlign='center';ctx.textBaseline='middle';var yo=ch*0.5+G.fs*0.04;
+  for(var kk=0;kk<K;kk++){var s=cnt[kk],e=cnt[kk+1];if(s===e)continue;ctx.fillStyle=PALS[(kk/NB)|0][kk%NB];for(var m=s;m<e;m++){var id=ord[m];ctx.fillText(G.chr[id],(id%cols+0.5)*cw,((id/cols)|0)*ch+yo);}}}
+var GCV=document.createElement('canvas'),GX=GCV.getContext('2d');
+function glow(ctx,amt){if(!amt)return;var cv=ctx.canvas,w=Math.max(2,(cv.width/6)|0),h=Math.max(2,(cv.height/6)|0);if(GCV.width!==w||GCV.height!==h){GCV.width=w;GCV.height=h;}
+  GX.globalCompositeOperation='copy';GX.imageSmoothingQuality='high';GX.drawImage(cv,0,0,w,h);ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=amt;ctx.drawImage(GCV,0,0,cv.width,cv.height);ctx.restore();}
+var G=null,lastNow=0;
+function flick(s){return RM?1:0.88+0.12*vn2(lastNow*6.5,0.5,s||3);}
+function drawFire(F,ox,oy,m){m=m===undefined?1:m;if(m<=0)return;for(var r=0;r<F.rows;r++){var gr=oy+r;if(gr<0||gr>=G.rows)continue;for(var c=0;c<F.cols;c++){var gc=ox+c;if(gc<0||gc>=G.cols)continue;var a=F.cell(c,r)*m;if(a<6)continue;
+  var q=Math.min(1.15,a/FMAX),kf=clamp(Math.round(Math.pow(q,1.15)*9.8),1,9),lf=clamp(0.14+0.86*Math.pow(q,0.95),0,1),id=gr*G.cols+gc;if(lf>G.lum[id]){G.lum[id]=lf;G.chr[id]=RAMP[kf];G.pi[id]=4;}}}}
+/* a tiny hand-held flame, procedural so it reads at four rows */
+function flame(cx,by,hgt,k,seed){if(k<=0)return;by=Math.round(by);var tt=lastNow,hw=Math.max(1.6,hgt*0.5);seed=seed||7;
+  for(var r=0;r<=hgt;r++){var y=r/hgt,gr=by-r;if(gr<0||gr>=G.rows)continue;var sway=(vn2(y*1.7-tt*1.3,tt*0.6,seed)-0.5)*2.2*y*y*hgt*0.35,w=hw*Math.pow(Math.sin(Math.PI*Math.min(1,y*0.92+0.08)),0.75)*(1-0.55*y)*Math.min(1,k*1.3);
+    if(w<0.35)continue;for(var c=Math.floor(cx-w-1);c<=Math.ceil(cx+w+1);c++){if(c<0||c>=G.cols)continue;var x=(c-cx-sway)/w,d=Math.abs(x);if(d>=1)continue;
+      var v=(1-d*d)*(1-0.6*Math.pow(y,1.4))*(0.8+0.35*vn2(c*0.8,y*5-tt*6,seed+1))*k;if(v<0.08)continue;var id=gr*G.cols+c;G.lum[id]=clamp(0.25+0.85*v,0,1);G.chr[id]=RAMP[clamp(Math.round(v*9.5),1,9)];G.pi[id]=4;}}}
+var SB=null;
+function saveG(){if(!SB||SB.n!==G.n)SB={n:G.n,lum:new Float32Array(G.n),pi:new Uint8Array(G.n),chr:new Array(G.n)};SB.lum.set(G.lum);SB.pi.set(G.pi);for(var i=0;i<G.n;i++)SB.chr[i]=G.chr[i];return SB;}
+function clearG(){G.lum.fill(0);G.pi.fill(0);}
+
+/* ---------- the v1 cave, resampled to fit (motion lab) ---------- */
+var CAVE=["                                         .+#%####:", "                                       -*%@@@@@@@%", "                                  .::-#@@@@@@@@@@@*", "                                 -%@@@@@@@@@@@@@@@@*:", "                                #@@@@@@@@@@@@@@@@@@@@+", "                            ..:+@@@@@@@@@@@@@@@@@@@@@@+:", "                            +@@@@@@@@@@@@@@@@@@@@@@@@@@*", "                            +@@@@@@@@@@@@@@@@@@@@@@@@@@%", "                            #@@@@@@@@@@@@@@@@@@@@@@@@@@%", "                           +@@@@@@@@@@@@@@@@@@@@@@@@@@@@*.", "                          -@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#%+", "                          +@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*:", "                          *@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#", "                          #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%.", "                          %@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%.", "                          *@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*", "                         .=@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@-", "                         :+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@-", "                         :+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@-", "                        .--%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@+", "                        .=-=%@@@@@@@@@@@@@@@@@@@@@@@@@@@@+", "                        .----%@@@@@@@@@@@@@@@@@@@@@@@@@@@-", "                       .----+@@@@@@@@@@@@@@@@@@@@@@@@@@@*", "                      :-----#@@@@@@@@@@@@@@@@@@@@@@@@@%#+.", "                     :-----+@@@@@@@@@@@@@@@@@@@@@@@@@*=--:", "                     .----=@@@@@@@@@@@@@@@@@@@@@@@@@*-----", "                      :---*@@@@@@@@@@@@@@@@@@@@@@@@@=-----.", "                     .-----%@@@@@@@@@@@@@@@@@@@@@@*=------:", "                     .-----%@@@@@@@@@@@@@@@@@@@@@@=--------.", "                      ----=@@%%%@@@@@@@@@@@@@@@@@#--------=:", "                      .:---=+=-==*@@@@@@@@@@@@@@*----------.", "                        ----------*@@@@@@@@@@@@@=--------.", "                        -----------*@@@@@@@@@@@#---------", "                        :-----------*@@@@@@@@@@#-------=.", "                         :=----------+#@@@@@@@%=------:.", "                         .----=====----=*#%%**=------:", "                           :::::::::-----===--=====:", "                               .::-=*%@%****######-", "                         ..:::------=++**++=:...", "           ....     .:--=++=++++**%%%%#####+-.", "        ......    .::--==+#%@@@@@@#####*++-.", "             --=======---=**#*+::::.......  ....", "             .:-==+++++++++++++=**==========:...", "       :------:::-----=============-:    .::...", "        ..:::--------=====+++====-----::", "             .....:::::::::::::::.......", "                :*#%%##*+++=+++****+-::..", " ...:::------------==+++-----------::::::--:::::...", "                     ..:::::::--==++*****++++======--.", "                         .................:::::::.....::.", "            .:::::---------:---=++*******+++==---::::....", "                                                        ...", " ............:::::::...     .:--======++***####**++===-:::.", " ...::::---------------:.      ..:-====--::.............", "                              ..    ...::--==++++++==-:.", "       ....................  .::--=======--::..", "        .........:::.......                ..::-----::...", "                        --=++++++++++********+==--:::.....", "                               .........", "     ...::::::::::::::::             .....:::::::::::::.", "                            .:::-===+====---:::::::...."];
+var CW0=0;CAVE.forEach(function(l){if(l.length>CW0)CW0=l.length;});var CH0=CAVE.length,WATER0=37;
+var CV0=new Float32Array(CW0*CH0);CAVE.forEach(function(l,r){for(var c=0;c<l.length;c++){var k=RAMPI[l[c]];CV0[r*CW0+c]=(k===undefined?1:k)/9;}});
+function caveFit(maxRows,maxCols){var s=Math.min(1,maxRows/CH0,maxCols/CW0);
+  if(s>=0.999)return {w:CW0,h:CH0,v:CV0,water:WATER0};
+  var w=Math.max(8,Math.round(CW0*s)),h=Math.max(8,Math.round(CH0*s)),v=new Float32Array(w*h),fx=CW0/w,fy=CH0/h;
+  for(var r=0;r<h;r++)for(var c=0;c<w;c++){var x0=c*fx,x1=(c+1)*fx,y0=r*fy,y1=(r+1)*fy,sum=0,ar=0;
+    for(var yy=Math.floor(y0);yy<Math.min(CH0,Math.ceil(y1));yy++)for(var xx=Math.floor(x0);xx<Math.min(CW0,Math.ceil(x1));xx++){var wx=Math.min(xx+1,x1)-Math.max(xx,x0),wy=Math.min(yy+1,y1)-Math.max(yy,y0);if(wx<=0||wy<=0)continue;sum+=CV0[yy*CW0+xx]*wx*wy;ar+=wx*wy;}
+    v[r*w+c]=ar>0?Math.min(1,Math.pow(sum/ar,0.8)*1.08):0;}
+  return {w:w,h:h,v:v,water:Math.round(WATER0*h/CH0)};}
+function caveS(cv,u,v){if(u<0||v<0||u>cv.w-1||v>cv.h-1)return 0;var x0=Math.floor(u),y0=Math.floor(v),x1=Math.min(x0+1,cv.w-1),y1=Math.min(y0+1,cv.h-1),fx=u-x0,fy=v-y0,w=cv.w,a=cv.v[y0*w+x0],b=cv.v[y0*w+x1],c=cv.v[y1*w+x0],d=cv.v[y1*w+x1];return (a+(b-a)*fx)*(1-fy)+(c+(d-c)*fx)*fy;}
+/* the cave filling the page, centred: ambient amb plus one fire FL {x,y,R,k}; rock the art leaves empty only shows where the fire reaches */
+function caveView(cv,amb,FL,pal,dy){var tt=lastNow,cols=G.cols,rows=G.rows,ox=(cols-cv.w)/2,oy=(rows-cv.h)/2+(dy||0),R2=FL?FL.R*FL.R:1,fl=FL?flick(4)*FL.k:0;
+  for(var r=0;r<rows;r++){var v=r-oy,vr=Math.round(v),inR=vr>=0&&vr<cv.h;
+    for(var c=0;c<cols;c++){var u=c-ox,L=0,val=0,lum,k;
+      if(FL){var dx=c-FL.x,dy=(r-FL.y)*1.85;L=fl*1.25/(1+(dx*dx+dy*dy)/R2);}
+      if(inR){var uu=u;if(vr>=cv.water&&!RM){var dep=clamp((vr-cv.water)/(cv.h-cv.water),0,1);uu+=(0.6+1.6*dep)*Math.sin(tt*1.9-vr*1.15)*0.6;}val=caveS(cv,uu,v);}
+      if(val>0.06){lum=clamp((0.25+0.75*val)*Math.max(amb,L),0,1);k=clamp(Math.round(val*9),1,9);}
+      else if(L>0.08){var rk=0.55*vn2(u*0.45,v*0.8,31)+0.45*vn2(u*1.3,v*2.1,32);rk=rk*rk*1.4;var rl=rk*L;if(rl<0.06)continue;lum=clamp(rl,0,1);k=clamp(Math.round(rl*9),1,6);}
+      else continue;
+      var id=r*cols+c;G.lum[id]=lum;G.chr[id]=RAMP[k];G.pi[id]=pal?pal(L):0;}}}
+
+/* ---------- the text: a production transcript, cut into tokens the way a tokenizer would ----------
+   Nothing here is a real log; it is written for the page. The only real number is the counter: tokens burned on this page, by you. */
+var LINES=[
+  ['prompt','a slow push toward the opening at dusk. one figure, backlit. 35mm. no sky in frame.'],
+  ['model','four plates. the second holds. the light leaves the rock at 18:12.'],
+  ['prompt','warmer in the blacks. leave the highlights alone.'],
+  ['model','done. two stops kept in the shadow. the figure reads now.'],
+  ['prompt','again, with the fire lit and out of frame.'],
+  ['model','the wall moves with it. take three is the one.'],
+  ['prompt','lose the figure.'],
+  ['model','removed. the room is bigger without them.'],
+  ['prompt','water in the foreground, still enough to hold the opening.'],
+  ['model','holding. the reflection sits a third darker than the source.'],
+  ['prompt','nothing in this shot moves faster than a walk.'],
+  ['model','retimed. 41 seconds. the cut lands on the exhale.'],
+  ['prompt','grain, but only what the night would give you.'],
+  ['model','iso 3200 matched. it looks like it was always there.'],
+  ['prompt','one more pass on the edge of the light.'],
+  ['model','softened by half. it falls off the way it does in a room with one lamp.'],
+  ['prompt','show me the frame without anything we added.'],
+  ['model','plate only. the opening, the water, the dark. it was most of the way there.'],
+  ['prompt','keep that one.'],
+  ['model','kept. everything else is in the bin, not deleted.']];
+function tokenize(s){var out=[],re=/( ?[a-z]+| ?[0-9]+| ?[^a-z0-9 ]| +)/g,m;
+  while((m=re.exec(s))){var t=m[0];if(t.trim().length>5&&/[a-z]/.test(t)){var lead=t[0]===' '?' ':'',w=t.trim(),i=0;
+      while(i<w.length){var n=w.length-i<=6?w.length-i:(h2(w.length,i,13)<0.5?3:4);out.push((i?'':lead)+w.slice(i,i+n));i+=n;}}else out.push(t);}
+  return out;}
+var TOKL=LINES.map(function(L){return {role:L[0],toks:[L[0]==='prompt'?'prompt':'model',' ·'].concat(tokenize(' '+L[1]))};});
+
+/* ---------- state ---------- */
+var pageEl=document.getElementById('page'),cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var countEl=document.getElementById('count'),noteEl=document.getElementById('note');
+var MODE='match',T=0,acc=0,raf=0,lastT=0,running=false,burned=0;
+var S=null;   /* per-layout state */
+var PTR={x:0,y:0,on:false,down:false,touch:false,at:-99};
+
+function gridSize(){var cs=getComputedStyle(document.body),fs=parseFloat(cs.fontSize)||14,cwc=fs*0.6,chc=cwc*1.85;
+  return {fs:fs,cwc:cwc,chc:chc,cols:Math.max(20,Math.floor(pageEl.clientWidth/cwc)),rows:Math.max(8,Math.floor(pageEl.clientHeight/chc))};}
+function layout(){var z=gridSize(),fs=z.fs,cwc=z.cwc,chc=z.chc,cols=z.cols,rows=z.rows;
+  cv.style.width=(cols*cwc)+'px';cv.style.height=(rows*chc)+'px';cv.width=Math.round(cols*cwc*DPR);cv.height=Math.round(rows*chc*DPR);
+  var old=(G&&S&&G.cols===cols)?S:null,n=cols*rows;G={cols:cols,rows:rows,cw:cwc*DPR,ch:chc*DPR,fs:fs*DPR,n:n,lum:new Float32Array(n),pi:new Uint8Array(n),chr:new Array(n),key:new Int32Array(n),ord:new Int32Array(n),cnt:new Int32Array(PALS.length*NB+1)};
+  build();
+  /* same width (a phone's address bar, say): the layout is identical row for row, so the burning carries over */
+  if(old){var m=Math.min(old.fuel.length,n);['fuel','burn','ash','rg','fresh','hole'].forEach(function(k){S[k].set(old[k].subarray(0,m));});
+    var tm=Math.min(old.tBurnt.length,S.tBurnt.length);S.tBurnt.set(old.tBurnt.subarray(0,tm));S.tFlag.set(old.tFlag.subarray(0,tm));
+    ['headAcc','headRow','cyc','done','doneAt','autoAt','demo','kAt','kx','ky'].forEach(function(k){S[k]=old[k];});S.head=Math.min(old.head,S.tCells.length-1);}}
+
+/* lay the token stream across the grid, one exchange per line, wrapping on token boundaries */
+function build(){var cols=G.cols,rows=G.rows,n=G.n;
+  S={tx:new Array(n).fill(' '),tk:new Int32Array(n).fill(-1),tone:new Float32Array(n),fuel:new Float32Array(n),burn:new Float32Array(n),ash:new Float32Array(n),rg:new Float32Array(n),fresh:new Float32Array(n),hole:new Uint8Array(n),
+    tLen:[],tCells:[],tBurnt:null,tFlag:null,F:new Fire(cols,rows),cave:caveFit(rows,cols),caveMask:new Uint8Array(n),caveN:0,
+    head:0,headAcc:0,headRow:-1,demo:0,cyc:0,done:false,doneAt:-99,autoAt:0,kAt:-99,kx:cols/2,ky:rows/2};
+  S.F.src=0;S.F.pd=clamp(140/rows,1.5,8);
+  var r=0,li=0,tid=0;
+  while(r<rows){var L=TOKL[li%TOKL.length],c=0,parity=0;li++;
+    for(var j=0;j<L.toks.length&&r<rows;j++){var t=L.toks[j];if(c===0)t=t.replace(/^ +/,'');if(!t)continue;
+      if(c+t.length>cols&&c>0){r++;c=0;t=t.replace(/^ +/,'');if(r>=rows)break;}
+      var cells=[],tn=j<2?0.2:(L.role==='model'?0.4:0.32)+(parity?0.05:0);parity^=1;
+      for(var q=0;q<t.length&&c<cols;q++,c++){var i=r*cols+c;S.tx[i]=t[q];S.tk[i]=tid;S.tone[i]=tn;if(t[q]!==' ')cells.push(i);}
+      S.tCells.push(cells);S.tLen.push(cells.length);tid++;}
+    r++;}
+  S.tBurnt=new Int32Array(tid);S.tFlag=new Uint8Array(tid);
+  var cvv=S.cave,ox=(cols-cvv.w)/2,oy=(rows-cvv.h)/2;
+  for(var y=0;y<rows;y++)for(var x=0;x<cols;x++){var val=caveS(cvv,x-ox,y-oy);if(val>0.15){S.caveMask[y*cols+x]=1;S.caveN++;}}
+  if(MODE==='stream'){/* the stream starts empty and is written in */}else S.fuel.fill(1);
+  for(var k=0;k<n;k++)S.hole[k]=MODE==='stream'?0:1;
+  noteEl.classList.remove('on');}
+
+/* ---------- burning ---------- */
+function light(j){if(S.fuel[j]>=1&&S.burn[j]===0)S.burn[j]=0.001;}
+function ignite(x,y,rad){var cols=G.cols,rows=G.rows;for(var r=Math.floor(y-rad);r<=Math.ceil(y+rad);r++){if(r<0||r>=rows)continue;for(var c=Math.floor(x-rad*1.85);c<=Math.ceil(x+rad*1.85);c++){if(c<0||c>=cols)continue;var dx=(c-x)/1.85,dy=r-y;if(dx*dx+dy*dy<=rad*rad)light(r*cols+c);}}}
+function burntOne(i){var t=S.tk[i];if(t<0||S.tx[i]===' ')return;S.tBurnt[t]++;if(!S.tFlag[t]&&S.tBurnt[t]*2>=S.tLen[t]){S.tFlag[t]=1;burned++;S.cyc++;}}
+function regrowOne(i){S.fuel[i]=1;S.fresh[i]=1;S.ash[i]=0;S.rg[i]=0;S.hole[i]=MODE==='stream'?0:1;var t=S.tk[i];if(t<0||S.tx[i]===' ')return;if(S.tBurnt[t]>0){S.tBurnt[t]--;if(!S.tBurnt[t])S.tFlag[t]=0;}}
+function match(){if(lastNow-S.kAt<1.2)return {x:S.kx,y:S.ky};if(PTR.on&&(PTR.touch?PTR.down:true)&&lastNow-PTR.at<0.5)return {x:PTR.x,y:PTR.y};return null;}
+function tick(h){var cols=G.cols,rows=G.rows,n=G.n,fu=S.fuel,bu=S.burn,as=S.ash,R=Math.random,F=S.F,f=F.f,FW=F.FW,cnt=0,sx=0,sy=0,t=T,
+    up=MODE==='stream'?0.05:0.034,side=MODE==='stream'?0.016:0.012,regrow=MODE==='match';
+  var M=match();if(M)ignite(M.x,M.y,1.3);
+  if(MODE==='stream')streamTick(h);
+  if(MODE==='frame')frameTick(h);
+  for(var i=0;i<n;i++){var b=bu[i];if(b<=0)continue;var c=i%cols,r=(i/cols)|0,hot=S.tx[i]!==' ';cnt++;sx+=c;sy+=r;b+=h/0.47;
+    var hv=FMAX*(hot?1.15:0.55),fi=2*r*FW+2*c;if(f[fi]<hv)f[fi]=hv;if(f[fi+1]<hv)f[fi+1]=hv;if(f[fi+FW]<hv)f[fi+FW]=hv;if(f[fi+FW+1]<hv)f[fi+FW+1]=hv;
+    if(r>0&&R()<up)light(i-cols);if(c>0&&R()<side)light(i-1);if(c<cols-1&&R()<side)light(i+1);if(r<rows-1&&R()<0.004)light(i+cols);
+    if(b>=1){bu[i]=0;fu[i]=0;as[i]=hot?1:0.35;S.hole[i]=1;burntOne(i);S.rg[i]=regrow?t+7+R()*5+c/cols*1.5:0;}else bu[i]=b;}
+  for(var r2=rows-2;r2>=0;r2--)for(var c2=0;c2<cols;c2++){var k=r2*cols+c2,a=as[k];if(a<=0)continue;a-=h/1.8;var j=k+cols;
+    if(a>0&&fu[j]===0&&bu[j]===0&&as[j]<=0.05&&R()<0.3){as[j]=a;as[k]=0;}else as[k]=Math.max(0,a);}
+  for(var q=(rows-1)*cols;q<n;q++)as[q]=Math.max(0,as[q]-h/1.8);
+  for(var p=0;p<n;p++){if(S.fresh[p]>0)S.fresh[p]=Math.max(0,S.fresh[p]-h/1.4);if(fu[p]===0&&bu[p]===0&&S.rg[p]>0&&t>=S.rg[p])regrowOne(p);}
+  S.cnt=cnt;if(cnt){S.cx=sx/cnt;S.cy=sy/cnt;}F.step();}
+
+/* stream: tokens are written in from the top at a model's pace; a slow fire eats the page from the bottom */
+function streamTick(h){var nt=S.tCells.length,cols=G.cols;S.headAcc+=h*(17+8*vn2(T*0.7,1,41));
+  while(S.headAcc>=1){S.headAcc-=1;var cells=S.tCells[S.head];
+    /* the head has left a row: its blank tail is page again, burnable */
+    if(cells.length){var row=(cells[0]/cols)|0;if(row!==S.headRow){if(S.headRow>=0)for(var x=0;x<cols;x++){var bi=S.headRow*cols+x;if(S.tk[bi]<0&&S.burn[bi]===0){S.fuel[bi]=1;S.hole[bi]=0;S.ash[bi]=0;}}S.headRow=row;}}
+    for(var q=0;q<cells.length;q++){var i=cells[q];if(S.burn[i]>0)continue;if(S.fuel[i]<1)regrowOne(i);else S.fresh[i]=1;}
+    S.head=(S.head+1)%nt;}
+  var rows=G.rows,bot=(rows-1)*cols;for(var z=0;z<3;z++)if(Math.random()<h*3){var c=(Math.random()*cols)|0;light(bot+c);light(bot-cols+c);}}
+/* frame: every burnt token uncovers a little more of one picture; when it is whole, it says what it cost, then the tokens come back */
+function frameTick(h){var cols=G.cols,rows=G.rows;
+  if(!S.done){if(T>=S.autoAt){S.autoAt=T+0.5+Math.random()*0.7;for(var tries=0;tries<40;tries++){var i=(Math.random()*G.n)|0;if(S.caveMask[i]&&S.fuel[i]>=1){ignite(i%cols,(i/cols)|0,1.1);break;}}}
+    var rev=0;for(var k=0;k<G.n;k++)if(S.caveMask[k]&&S.fuel[k]<1)rev++;
+    if(S.caveN&&rev/S.caveN>=0.96){S.done=true;S.doneAt=T;noteEl.textContent='one frame: '+S.cyc.toLocaleString('en-US')+' tokens';noteEl.classList.add('on');}}
+  else if(T>=S.doneAt+7&&S.doneAt>0){var R=Math.random;for(var p=0;p<G.n;p++)if(S.fuel[p]<1&&S.burn[p]===0&&!S.rg[p])S.rg[p]=T+R()*4+(p%cols)/cols*1.5;
+    S.doneAt=-1;noteEl.classList.remove('on');}
+  else if(S.doneAt===-1){var left=0;for(var z=0;z<G.n;z++)if(S.fuel[z]<1)left++;if(!left){S.done=false;S.cyc=0;S.autoAt=T+2.5;S.doneAt=-99;}}}
+
+function compose(){var cols=G.cols,rows=G.rows,n=G.n,FL=null,M=match(),amb=MODE==='frame'?0.72:MODE==='stream'?0.3:0.14;
+  if(S.cnt)FL={x:S.cx,y:S.cy,R:cols*(0.12+0.1*clamp(S.cnt/60,0,1)),k:clamp(0.35+S.cnt/40,0,1)};else if(M)FL={x:M.x,y:M.y,R:cols*0.08,k:0.5};
+  clearG();caveView(S.cave,amb,FL,function(L){return L>0.5?4:L>0.12?3:0;},MODE==='stream'?Math.round(rows*0.42):0);
+  var C=saveG();clearG();var fu=S.fuel,R2=FL?FL.R*FL.R:1;
+  for(var i=0;i<n;i++){var c=i%cols,r=(i/cols)|0;
+    if(fu[i]>=1){var ch=S.tx[i];if(ch===' ')continue;var l=S.tone[i]+0.5*S.fresh[i],p=0,edge=(c>0&&fu[i-1]<1&&S.hole[i-1])||(c<cols-1&&fu[i+1]<1&&S.hole[i+1])||(r>0&&fu[i-cols]<1&&S.hole[i-cols])||(r<rows-1&&fu[i+cols]<1&&S.hole[i+cols]);
+      if(edge){l=0.55;p=5;}if(FL){var dx=c-FL.x,dy=(r-FL.y)*1.85,Lf=FL.k/(1+(dx*dx+dy*dy)/R2);if(Lf>0.25){l=Math.min(0.9,l+Lf*0.3);if(!p)p=Lf>0.55?3:2;}}
+      G.lum[i]=l;G.chr[i]=ch;G.pi[i]=p;}
+    else if(S.burn[i]>0){G.lum[i]=0.95;G.chr[i]=S.tx[i]===' '?'*':S.tx[i];G.pi[i]=4;}
+    else{if(S.hole[i]&&C.lum[i]>0){G.lum[i]=C.lum[i];G.chr[i]=C.chr[i];G.pi[i]=C.pi[i];}var a=S.ash[i];if(a>0.05){var al=0.12+0.5*a;if(al>G.lum[i]){G.lum[i]=al;G.chr[i]=a>0.66?':':a>0.33?',':'.';G.pi[i]=5;}}}}
+  drawFire(S.F,0,0);
+  if(MODE==='stream'&&!RM){var hc=S.tCells[S.head];if(hc&&hc.length){var hi=hc[0];if(Math.floor(lastNow*1.9)%2===0){G.lum[hi]=0.85;G.chr[hi]='█';G.pi[hi]=0;}}}
+  if(M&&!RM)flame(M.x,M.y+1,2,1,9);
+  drawCells(ctx,G,null,0.035);glow(ctx,0.2);
+  countEl.textContent=burned.toLocaleString('en-US')+(burned===1?' token':' tokens')+' burned here';}
+
+/* reduced motion: a still, with a hole burnt through to the picture; a tap burns another, without animation */
+function stillHole(x,y,rx,ry){var cols=G.cols;for(var i=0;i<G.n;i++){var c=i%cols,r=(i/cols)|0,d=Math.pow((c-x)/rx,2)+Math.pow((r-y)/ry,2)+(vn2(c*0.2,r*0.35,93)-0.5)*0.5;
+  if(d<1&&S.fuel[i]>=1){S.fuel[i]=0;S.burn[i]=0;S.ash[i]=0;S.rg[i]=0;S.hole[i]=1;burntOne(i);}}}
+function still(){if(MODE==='stream'){S.fuel.fill(1);S.hole.fill(1);}stillHole(G.cols*0.5,G.rows*0.5,G.cols*(MODE==='frame'?0.4:0.24),G.rows*(MODE==='frame'?0.45:0.3));compose();}
+
+/* ---------- loop: a fixed 30 Hz simulation, paused when the tab is hidden ---------- */
+function frame(ts){raf=0;var now=ts/1000,dt=lastT?Math.min(0.1,now-lastT):0;lastT=now;lastNow=now;
+  if(MODE==='match'&&!S.demo&&T>=1.0){S.demo=1;ignite(G.cols*0.5,G.rows*0.6,2.2);}
+  acc+=dt;var k=0;while(acc>1/30&&k<3){acc-=1/30;T+=1/30;tick(1/30);k++;}if(k===3)acc=0;
+  compose();kick();}
+function kick(){if(!raf&&running&&!document.hidden&&!RM)raf=requestAnimationFrame(frame);}
+document.addEventListener('visibilitychange',function(){if(document.hidden){if(raf)cancelAnimationFrame(raf);raf=0;lastT=0;}else kick();});
+
+function toGrid(e){var b=cv.getBoundingClientRect();return {x:(e.clientX-b.left)/b.width*G.cols,y:(e.clientY-b.top)/b.height*G.rows};}
+function ptr(e){var p=toGrid(e);PTR.x=p.x;PTR.y=p.y;PTR.on=true;PTR.at=lastNow||performance.now()/1000;PTR.touch=e.pointerType!=='mouse';}
+cv.addEventListener('pointermove',function(e){ptr(e);});
+cv.addEventListener('pointerdown',function(e){ptr(e);PTR.down=true;try{cv.setPointerCapture(e.pointerId);}catch(_){}if(RM){stillHole(PTR.x,PTR.y,4.5,2.4);compose();}});
+['pointerup','pointercancel'].forEach(function(ev){cv.addEventListener(ev,function(){PTR.down=false;});});
+cv.addEventListener('pointerleave',function(){PTR.on=false;PTR.down=false;});
+document.addEventListener('keydown',function(e){if(e.metaKey||e.ctrlKey||e.altKey||!G)return;if(e.key!=='.')return;e.preventDefault();
+  var x=G.cols*(0.15+Math.random()*0.7),y=G.rows*(0.2+Math.random()*0.65);
+  if(RM){stillHole(x,y,4.5,2.4);compose();return;}S.kx=x;S.ky=y;S.kAt=lastNow;ignite(x,y,1.6);});
+
+var modeBtns=[].slice.call(document.querySelectorAll('.modes button'));
+function setMode(m){if(m===MODE&&S)return;MODE=m;modeBtns.forEach(function(b){b.setAttribute('aria-pressed',b.dataset.m===m?'true':'false');});
+  try{history.replaceState(null,'',m==='match'?location.pathname:'#'+m);}catch(_){}
+  T=0;acc=0;build();if(RM)still();else{compose();kick();}}
+modeBtns.forEach(function(b){b.addEventListener('click',function(){setMode(b.dataset.m);});});
+var rzT=0;new ResizeObserver(function(){if(!running)return;clearTimeout(rzT);rzT=setTimeout(function(){var z=gridSize();if(G&&z.cols===G.cols&&z.rows===G.rows&&Math.abs(z.fs*DPR-G.fs)<0.01)return;layout();if(RM)still();else compose();},120);}).observe(pageEl);
+RMQ.addEventListener&&RMQ.addEventListener('change',function(e){RM=e.matches;build();if(RM)still();else kick();});
+
+function boot(){var h=(location.hash||'').slice(1);if(h==='stream'||h==='frame'){MODE=h;modeBtns.forEach(function(b){b.setAttribute('aria-pressed',b.dataset.m===h?'true':'false');});}
+  running=true;layout();
+  /* test hook: ?sim=N runs N seconds of the page before the first paint (matches are struck at random in match mode) */
+  var sim=+(new URLSearchParams(location.search).get('sim')||0);if(sim>0&&!RM){for(var i=0;i<sim*30;i++){T+=1/30;lastNow=T;if(MODE==='match'&&i%60===30)ignite(G.cols*(0.2+Math.random()*0.6),G.rows*(0.2+Math.random()*0.6),1.6);tick(1/30);}S.demo=1;}
+  if(RM)still();else{compose();kick();}}
+var fl0=document.fonts&&document.fonts.load?document.fonts.load('16px "JetBrains Mono"'):Promise.resolve();
+Promise.race([fl0,new Promise(function(r){setTimeout(r,1500);})]).then(boot);
+})();
+</script>

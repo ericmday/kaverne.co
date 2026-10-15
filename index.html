@@ -121,8 +121,10 @@ setTimeline(false);
 
 function layout(){var w=scr.clientWidth,h=scr.clientHeight,narrow=w<640,W=Math.max(2,Math.round(w*DPR)),H=Math.max(2,Math.round(h*DPR));
   if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
-  var cols=Math.round(clamp(w/(narrow?6.2:8.6),44,240));G=mkGrid(W,H,cols);
-  cave=caveFit(Math.max(10,G.rows-(narrow?9:7)),G.cols-(narrow?8:4));
+  /* 20% smaller than the first cut: on desktop the characters shrink and the cave keeps its row count (same detail);
+     on a phone the characters are already small, so the cave fits a 20% smaller box instead */
+  var cols=Math.round(clamp(w/(narrow?6.2:6.88),44,280));G=mkGrid(W,H,cols);
+  cave=narrow?caveFit(Math.max(10,Math.round((G.rows-9)*0.8)),Math.round((G.cols-8)*0.8)):caveFit(Math.max(10,Math.round(G.rows*0.8-7)),Math.round(G.cols*0.8-4));
   var block=cave.h+3;cx0=Math.round((G.cols-cave.w)/2);cy0=Math.max(1,Math.round((G.rows-block)/2)-(narrow?2:0));nameRow=Math.min(G.rows-3,cy0+cave.h+1);
   var kx=cave.w/CW0,ky=cave.h/CH0;MB={x:cx0+MOUTH.x*kx,y:cy0+MOUTH.y*ky,w:MOUTH.w*kx,h:MOUTH.h*ky};
   S0=clamp(Math.min(G.cols/MB.w,G.rows/MB.h)*1.02,1.6,9);

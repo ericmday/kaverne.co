@@ -340,7 +340,7 @@ function pick(){
   /* after a while in the dark, the cavern starts seeing things */
   if(!SEEDING&&watched>60&&now-lastDrift>15000&&Math.random()<0.16){lastDrift=now;var lh=local(HOMETZ);return {cls:'drift',time:lh.s,city:'here',text:fresh(DRIFT,'d')};}
   /* ours, every so often */
-  if(now-lastOurs>(18000+Math.random()*16000)){lastOurs=now;var h=opts.filter(function(o){return o.c[0]===HOME;})[0],w=ours();return {cls:'ours',time:h.t.s,city:'kaverne'+(w.role?'/'+w.role:''),text:w.text};}
+  if(now-lastOurs>(90000+Math.random()*90000)){lastOurs=now;var h=opts.filter(function(o){return o.c[0]===HOME;})[0],w=ours();return {cls:'ours',time:h.t.s,city:'kaverne'+(w.role?'/'+w.role:''),text:w.text};}
   /* the edges of the night: dawn and dusk, wherever they are right now */
   var edges=opts.filter(function(o){return o.p==='dawn'||o.p==='dusk';});
   if(edges.length&&now-lastEdge>11000&&Math.random()<0.35){lastEdge=now;var e=rnd(edges);return {cls:'edge',time:e.t.s,city:e.c[0],text:fresh(e.p==='dawn'?DAWN:DUSK,e.p)};}
@@ -372,7 +372,7 @@ function wait(ms){return new Promise(function(r){setTimeout(r,RM?ms*1.5:ms);});}
 if(window.claude&&window.claude.use)window.claude.use('room').then(function(r){if(!r)return;r.presence({seat:1}).catch(function(){});r.onPeers(function(c){SEATS=c.peers.length;});}).catch(function(){});
 drawBand();tick();setInterval(drawBand,30000);setInterval(tick,1000);
 /* open mid-stream, the way you'd tune in */
-(function seed(){SEEDING=true;for(var k=0;k<7;k++){var e=pick(),x=row(e.cls,e.time,e.city);x.textContent=e.text;}SEEDING=false;lastOurs=Date.now()-12000;lastThread=0;})();
+(function seed(){SEEDING=true;for(var k=0;k<7;k++){var e=pick(),x=row(e.cls,e.time,e.city);x.textContent=e.text;}SEEDING=false;lastOurs=Date.now();lastThread=0;})();
 loop();
 })();
 </script>

@@ -4,8 +4,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0A0A">
 <meta property="og:title" content="Kaverne">
-<meta property="og:description" content="Somewhere it is always night. Machines are up doing the work. One of them is ours.">
-<meta name="description" content="Somewhere it is always night, and machines are up doing the work. Kaverne's is one of them.">
+<meta property="og:description" content="An agentic creative studio. Somewhere it is always night. Machines are up doing the work. One of them is ours.">
+<meta name="description" content="Kaverne is an agentic creative studio. Somewhere it is always night, and machines are up doing the work. Kaverne's is one of them.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://kaverne.co/">
 <meta property="og:site_name" content="Kaverne">
@@ -44,6 +44,7 @@ body{margin:0;background:var(--bg);color:var(--text);font:400 var(--fs)/var(--lh
 .mail{color:var(--chrome);text-decoration:none;white-space:nowrap;transition:color .4s}
 .mail:hover,.mail:focus-visible{color:var(--hi)}
 .count{color:var(--faint);font-variant-numeric:tabular-nums;text-align:right}
+.what{display:block;color:var(--text);margin-top:.5em;white-space:normal}
 .tally{display:block;color:var(--faint);font-variant-numeric:tabular-nums;margin-top:.5em}
 
 /* the stream: newest at the bottom, older lines dim as they rise */
@@ -72,13 +73,13 @@ body{margin:0;background:var(--bg);color:var(--text);font:400 var(--fs)/var(--lh
 .glow{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .row.drift .x{color:var(--text);font-style:italic}
 .row.drift .c{color:var(--faint)}
-@media (max-width:640px){.row{grid-template-columns:5ch 9ch minmax(0,1fr);column-gap:1.4ch}.here{display:none}.band{bottom:calc(var(--m) * .55 + 4.4em)}.feed{bottom:calc(var(--m) * .55 + 7.6em)}}
+@media (max-width:640px){.row{grid-template-columns:5ch 9ch minmax(0,1fr);column-gap:1.4ch}.row .c .r{display:block}.here{display:none}.band{bottom:calc(var(--m) * .55 + 4.4em)}.feed{bottom:calc(var(--m) * .55 + 7.6em)}}
 @media (prefers-reduced-motion:reduce){.cur{animation:none}}
 </style>
 
 <main class="scr">
   <canvas class="glow" id="glow" aria-hidden="true"></canvas>
-  <div class="top"><span class="mark">kaverne &nbsp;&middot;&nbsp; night shift<span class="tally" id="tally"></span></span><span class="count" id="count"></span></div>
+  <div class="top"><span class="mark">kaverne &nbsp;&middot;&nbsp; night shift<span class="what">an agentic creative studio. people by day, agents by night.</span><span class="tally" id="tally"></span></span><span class="count" id="count"></span></div>
   <div class="feed" id="feed" role="log" aria-live="off" aria-label="things happening tonight, wherever it is night"></div>
   <div class="band" id="band" aria-hidden="true"><div class="cells" id="cells"></div></div>
   <div class="bot"><span class="mark">we only know the time by what reaches us from the surface.</span><a class="mail" href="mailto:hello@kaverne.co">hello@kaverne.co</a></div>
@@ -140,21 +141,37 @@ function drawBand(){
   var dark=CITIES.filter(function(c){return phase(local(c[1]).h)==='night';});
   DARK=dark.length;
 }
-/* things that tick every second: the clock, tonight's tally, kaverne's render */
+/* things that tick every second: the clock, tonight's tally, kaverne's night's work */
 var DARK=0,SEATS=0,tallyEl=document.getElementById('tally');
 function tick(){
   countEl.innerHTML='night in '+DARK+' of '+CITIES.length+' cities<span class="here">  ·  '+local('Europe/London',true).s+' here</span>'+(SEATS?'<span class="here">  ·  '+SEATS+' in the seats</span>':'');
   var d=NOW(),sec=d.getUTCHours()*3600+d.getUTCMinutes()*60+d.getUTCSeconds()+d.getUTCMilliseconds()/1000;
   tallyEl.textContent=Math.floor(sec*38.6+Math.sin(sec/7)*20).toLocaleString('en-US')+' things done tonight';
-  var p=progress();lab.innerHTML=p<=1?'kaverne  ·  long render <b>'+(p*100).toFixed(2)+'%</b>':'kaverne  ·  resting';
+  var p=progress();var st=p<0.1?'reading the brief':p<0.3?'boards':p<0.45?'look':p<0.65?'cut':p<0.75?'sound':p<0.88?'colour and type':'review';lab.innerHTML=p<=1?'kaverne  ·  '+st+' <b>'+(p*100).toFixed(2)+'%</b>':'kaverne  ·  with the people';
 }
 
 /* ---------- kaverne's own machine: one long job, timed to london's real night ---------- */
 function progress(){var d=NOW(),t=local('Europe/London'),mins=t.h*60+t.m+d.getSeconds()/60;return ((mins-22*60+1440)%1440)/(8*60);}
+/* ours: the people leave a brief at 22:00, the agents work it through the night, the people choose at nine */
+var BRIEFS=[
+ {b:'a title sequence for a film about lighthouses',d:'the lamp',s:'a foghorn, slowed down'},
+ {b:'a launch film for a bicycle that folds in half',d:'the frame',s:'a freewheel ticking'},
+ {b:'an identity for a bakery that only opens at night',d:'the crust',s:'the oven door'},
+ {b:'a music video for a song about the tide',d:'wet sand',s:'the tide, backwards'},
+ {b:'thirty seconds for a coffee roaster on an island',d:'the roast',s:'beans cooling'},
+ {b:'posters for a museum’s new room of clocks',d:'brass',s:'four hundred clocks, out of step'}
+];
+function brief(){var d=new Date(NOW().getTime()-6*3600000).toISOString().slice(0,10),h=0;for(var i=0;i<d.length;i++)h=(h*31+d.charCodeAt(i))|0;return BRIEFS[Math.abs(h)%BRIEFS.length];}
 function ours(){
-  var p=progress();
-  if(p<=1){var pc=Math.max(1,Math.min(99,Math.floor(p*100)));return rnd(['the long render, '+pc+'%. humming.','still going. '+pc+'%. nothing to report.','inside: 11\u00b0, still. as always.','inside it\u2019s the same hour it always is.','the long render, '+pc+'%. we heard it\u2019s raining somewhere.']);}
-  return rnd(['everyone’s in. the machine rests.','daylight. ours is quiet until tonight.','the people are back. it listens.']);
+  var p=progress(),B=brief(),k=function(a,b,n){return Math.max(1,Math.min(n,1+Math.floor((p-a)/(b-a)*n)));};
+  if(p>1)return {role:'',text:rnd(['the people are in. they’re choosing.','daylight. the agents rest; the people decide.','tonight’s brief is being written upstairs.','the people picked the strange one.'])};
+  if(p<0.1)return {role:'brief',text:rnd(['tonight’s brief: '+B.b+'.','brief read twice. questions left for the morning.','the brief says “quiet”. noted.'])};
+  if(p<0.3)return {role:'boards',text:rnd(['boards. frame '+k(0.1,0.3,40)+' of 40.','forty first ideas. most are bad. that’s the point.','three agents draw the same shot three ways.'])};
+  if(p<0.45)return {role:'look',text:rnd(['a palette, taken from '+B.d+'.','forty directions down to six.','six directions down to three. one is strange. keeping it.'])};
+  if(p<0.65){var c=k(0.45,0.65,12);return {role:'cut',text:rnd(['cut '+c+'. shorter.','cut '+c+'. the last shot moved to first.','cut '+c+'. one frame trimmed. better.'])};}
+  if(p<0.75)return {role:'sound',text:rnd(['a sound pass: '+B.s+'.','sound pass. quieter, then quieter.'])};
+  if(p<0.88)return rnd([{role:'colour',text:'colour. darker, then back.'},{role:'colour',text:'grade '+k(0.75,0.88,6)+'. the shadows go a little blue.'},{role:'type',text:'type set. kerned twice.'}]);
+  return {role:'review',text:rnd(['one agent argues for version two. it’s written down.','three directions, ready for the people at nine.','tidying up. naming the files properly.'])};
 }
 
 /* ---------- prisoner's cinema: what the dark makes of the lines going past ---------- */
@@ -236,7 +253,7 @@ function row(cls,time,city,text){
   var r=document.createElement('div');r.className='row'+(cls?' '+cls:'');
   if(cls==='note'){var x=document.createElement('span');x.className='x';r.appendChild(x);feed.appendChild(r);age();return x;}
   var a=document.createElement('span');a.className='t';a.textContent=time;
-  var b=document.createElement('span');b.className='c';b.textContent=city;
+  var b=document.createElement('span');b.className='c';var sl=city.indexOf('/');b.textContent=sl<0?city:city.slice(0,sl);if(sl>=0){var rl=document.createElement('span');rl.className='r';rl.textContent=city.slice(sl);b.appendChild(rl);}
   var x2=document.createElement('span');x2.className='x';r.appendChild(a);r.appendChild(b);r.appendChild(x2);feed.appendChild(r);
   age();
   return x2;
@@ -287,7 +304,8 @@ function pick(){
       if(!hit.length)continue;
       hit.forEach(function(o){marks[o.c[0]+K.k+day]=1;});
       var home=hit.filter(function(o){return o.c[0]===HOME;})[0];
-      if(home&&K.k==='j')return {cls:'ours',time:home.t.s,city:'kaverne',text:'22:00. the long render starts. see you at six.'};
+      if(home&&K.k==='j')return {cls:'ours',time:home.t.s,city:'kaverne',text:'22:00. the people leave a brief. the agents take it from here.'};
+      if(home&&K.k==='d')return {cls:'ours',time:home.t.s,city:'kaverne',text:'06:00. three directions on the desk. over to the people.'};
       var first=hit[0],others=hit.slice(1).map(function(o){return o.c[0];});
       var tail=others.length?'  ('+(others.length===1?others[0]:others.slice(0,-1).join(', ')+' and '+others[others.length-1])+' too)':'';
       return {cls:'edge',time:first.t.s,city:first.c[0],text:K.text(first.t)+tail};
@@ -305,7 +323,7 @@ function pick(){
   /* after a while in the dark, the cavern starts seeing things */
   if(!SEEDING&&watched>60&&now-lastDrift>15000&&Math.random()<0.16){lastDrift=now;var lh=local('Europe/London');return {cls:'drift',time:lh.s,city:'here',text:fresh(DRIFT,'d')};}
   /* ours, every so often */
-  if(now-lastOurs>(18000+Math.random()*16000)){lastOurs=now;var h=opts.filter(function(o){return o.c[0]===HOME;})[0];return {cls:'ours',time:h.t.s,city:'kaverne',text:ours()};}
+  if(now-lastOurs>(18000+Math.random()*16000)){lastOurs=now;var h=opts.filter(function(o){return o.c[0]===HOME;})[0],w=ours();return {cls:'ours',time:h.t.s,city:'kaverne'+(w.role?'/'+w.role:''),text:w.text};}
   /* the edges of the night: dawn and dusk, wherever they are right now */
   var edges=opts.filter(function(o){return o.p==='dawn'||o.p==='dusk';});
   if(edges.length&&now-lastEdge>11000&&Math.random()<0.35){lastEdge=now;var e=rnd(edges);return {cls:'edge',time:e.t.s,city:e.c[0],text:fresh(e.p==='dawn'?DAWN:DUSK,e.p)};}

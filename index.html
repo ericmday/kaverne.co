@@ -101,7 +101,7 @@ var CITIES=[
  ['manila','Asia/Manila',121],['shanghai','Asia/Shanghai',121],['perth','Australia/Perth',116],['seoul','Asia/Seoul',127],['tokyo','Asia/Tokyo',140],['osaka','Asia/Tokyo',135],
  ['darwin','Australia/Darwin',131],['brisbane','Australia/Brisbane',153],['sydney','Australia/Sydney',151],['auckland','Pacific/Auckland',175],['suva','Pacific/Fiji',178]
 ];
-var HOME='london';
+var HOME='los angeles',HOMETZ='America/Los_Angeles',HOMELON=-118;
 var NIGHT=[
  'a render finishes. nobody will see it until nine.','an inbox goes quiet.','a backup completes. it always does.',
  'a translation stops mid-sentence, then finishes the sentence.','a weather model runs. tomorrow: rain, mostly.',
@@ -134,7 +134,7 @@ var N=72;for(var i=0;i<N;i++)cells.appendChild(document.createElement('i'));
 var pin=document.createElement('span');pin.className='pin';band.appendChild(pin);
 var lab=document.createElement('span');lab.className='lab';lab.textContent='kaverne';band.appendChild(lab);
 function lonX(lon){return (lon+180)/360*100;}
-pin.style.left=lonX(0)+'%';lab.style.left=lonX(0)+'%';
+pin.style.left=lonX(HOMELON)+'%';
 function drawBand(){
   var d=NOW(),utc=d.getUTCHours()+d.getUTCMinutes()/60;
   [].forEach.call(cells.children,function(c,i){var lon=-180+(i+0.5)*360/N,solar=(utc+lon/15+48)%24;c.className=(solar<5.5||solar>=19.5)?'n':'';});
@@ -144,15 +144,16 @@ function drawBand(){
 /* things that tick every second: the clock, tonight's tally, kaverne's night's work */
 var DARK=0,SEATS=0,tallyEl=document.getElementById('tally');
 function tick(){
-  countEl.innerHTML='night in '+DARK+' of '+CITIES.length+' cities<span class="here">  ·  '+local('Europe/London',true).s+' here</span>'+(SEATS?'<span class="here">  ·  '+SEATS+' in the seats</span>':'');
+  countEl.innerHTML='night in '+DARK+' of '+CITIES.length+' cities<span class="here">  ·  '+local(HOMETZ,true).s+' here</span>'+(SEATS?'<span class="here">  ·  '+SEATS+' in the seats</span>':'');
   var d=NOW(),sec=d.getUTCHours()*3600+d.getUTCMinutes()*60+d.getUTCSeconds()+d.getUTCMilliseconds()/1000;
   tallyEl.textContent=Math.floor(sec*38.6+Math.sin(sec/7)*20).toLocaleString('en-US')+' things done tonight';
   var p=progress();var st=p<0.1?'reading the brief':p<0.3?'boards':p<0.45?'look':p<0.65?'cut':p<0.75?'sound':p<0.88?'colour and type':'review';lab.innerHTML=p<=1?'kaverne  ·  '+st+' <b>'+(p*100).toFixed(2)+'%</b>':'kaverne  ·  with the people';
+  var bw=band.clientWidth,lw=lab.offsetWidth;lab.style.left=Math.max(lw/2,Math.min(bw-lw/2,lonX(HOMELON)/100*bw))+'px';
 }
 
-/* ---------- kaverne's own machine: one long job, timed to london's real night ---------- */
-function progress(){var d=NOW(),t=local('Europe/London'),mins=t.h*60+t.m+d.getSeconds()/60;return ((mins-22*60+1440)%1440)/(8*60);}
-/* ours: the people leave a brief at 22:00, the agents work it through the night, the people choose at nine */
+/* ---------- kaverne's own night: one brief, timed to the studio's real night (pacific) ---------- */
+function progress(){var d=NOW(),t=local(HOMETZ),mins=t.h*60+t.m+d.getSeconds()/60;return ((mins-22*60+1440)%1440)/(8*60);}
+/* ours: the people leave a brief at 22:00, the agents pass it between them through the night, the people choose at nine */
 var BRIEFS=[
  {b:'a title sequence for a film about lighthouses',d:'the lamp',s:'a foghorn, slowed down'},
  {b:'a launch film for a bicycle that folds in half',d:'the frame',s:'a freewheel ticking'},
@@ -161,17 +162,18 @@ var BRIEFS=[
  {b:'thirty seconds for a coffee roaster on an island',d:'the roast',s:'beans cooling'},
  {b:'posters for a museum’s new room of clocks',d:'brass',s:'four hundred clocks, out of step'}
 ];
-function brief(){var d=new Date(NOW().getTime()-6*3600000).toISOString().slice(0,10),h=0;for(var i=0;i<d.length;i++)h=(h*31+d.charCodeAt(i))|0;return BRIEFS[Math.abs(h)%BRIEFS.length];}
+var shiftDay=new Intl.DateTimeFormat('en-CA',{timeZone:HOMETZ});
+function brief(){var d=shiftDay.format(new Date(NOW().getTime()-6*3600000)),h=0;for(var i=0;i<d.length;i++)h=(h*31+d.charCodeAt(i))|0;return BRIEFS[Math.abs(h)%BRIEFS.length];}
 function ours(){
-  var p=progress(),B=brief(),k=function(a,b,n){return Math.max(1,Math.min(n,1+Math.floor((p-a)/(b-a)*n)));};
-  if(p>1)return {role:'',text:rnd(['the people are in. they’re choosing.','daylight. the agents rest; the people decide.','tonight’s brief is being written upstairs.','the people picked the strange one.'])};
-  if(p<0.1)return {role:'brief',text:rnd(['tonight’s brief: '+B.b+'.','brief read twice. questions left for the morning.','the brief says “quiet”. noted.'])};
-  if(p<0.3)return {role:'boards',text:rnd(['boards. frame '+k(0.1,0.3,40)+' of 40.','forty first ideas. most are bad. that’s the point.','three agents draw the same shot three ways.'])};
-  if(p<0.45)return {role:'look',text:rnd(['a palette, taken from '+B.d+'.','forty directions down to six.','six directions down to three. one is strange. keeping it.'])};
-  if(p<0.65){var c=k(0.45,0.65,12);return {role:'cut',text:rnd(['cut '+c+'. shorter.','cut '+c+'. the last shot moved to first.','cut '+c+'. one frame trimmed. better.'])};}
-  if(p<0.75)return {role:'sound',text:rnd(['a sound pass: '+B.s+'.','sound pass. quieter, then quieter.'])};
-  if(p<0.88)return rnd([{role:'colour',text:'colour. darker, then back.'},{role:'colour',text:'grade '+k(0.75,0.88,6)+'. the shadows go a little blue.'},{role:'type',text:'type set. kerned twice.'}]);
-  return {role:'review',text:rnd(['one agent argues for version two. it’s written down.','three directions, ready for the people at nine.','tidying up. naming the files properly.'])};
+  var p=progress(),B=brief(),k=function(a,b,n){return Math.max(1,Math.min(n,1+Math.floor((p-a)/(b-a)*n)));},L=function(r,t){return {role:r,text:t};};
+  if(p>1)return rnd([L('','daylight. the agents rest; the people decide.'),L('people','→ review: the strange one. obviously.'),L('people','→ brief: tonight, something with the sea.'),L('','the people are in. they’re choosing.')]);
+  if(p<0.1)return rnd([L('brief','→ everyone: tonight, '+B.b+'.'),L('brief','→ boards: they said “quiet”. take that literally.'),L('boards','→ brief: how quiet?'),L('brief','→ boards: quieter than that.')]);
+  if(p<0.3){var f=k(0.1,0.3,40);return rnd([L('boards','→ look: frames 1–'+f+' are yours.'),L('look','→ boards: frame '+Math.max(1,f-3)+' is too busy.'),L('boards','→ cut: forty first ideas. most are bad. that’s the point.'),L('boards','→ boards: same shot, three ways. go.')]);}
+  if(p<0.45)return rnd([L('look','→ cut: a palette, taken from '+B.d+'. use it everywhere.'),L('look','→ review: six directions. one is strange. keep it?'),L('review','→ look: keep it.')]);
+  if(p<0.65){var c=k(0.45,0.65,12);return rnd([L('cut','→ sound: cut '+c+' is locked. it’s yours.'),L('review','→ cut: shorter.'),L('cut','→ review: cut '+c+'. shorter.'),L('cut','→ look: the last shot moved to first. check the light.')]);}
+  if(p<0.75)return rnd([L('sound','→ cut: '+B.s+', under the last shot. listen.'),L('cut','→ sound: quieter.'),L('sound','→ cut: quieter, then quieter.')]);
+  if(p<0.88){var g=k(0.75,0.88,6);return rnd([L('colour','→ cut: grade '+g+'. the shadows go a little blue.'),L('type','→ colour: the title gets lost in the dark. lift it?'),L('colour','→ type: lifted. a little.'),L('type','→ review: kerned twice.')]);}
+  return rnd([L('review','→ everyone: three directions. that’s the night.'),L('review','→ people: two we’d defend, one we’d fight for.'),L('review','→ cut: version two had a supporter. it’s written down.')]);
 }
 
 /* ---------- prisoner's cinema: what the dark makes of the lines going past ---------- */
@@ -304,8 +306,8 @@ function pick(){
       if(!hit.length)continue;
       hit.forEach(function(o){marks[o.c[0]+K.k+day]=1;});
       var home=hit.filter(function(o){return o.c[0]===HOME;})[0];
-      if(home&&K.k==='j')return {cls:'ours',time:home.t.s,city:'kaverne',text:'22:00. the people leave a brief. the agents take it from here.'};
-      if(home&&K.k==='d')return {cls:'ours',time:home.t.s,city:'kaverne',text:'06:00. three directions on the desk. over to the people.'};
+      if(home&&K.k==='j')return {cls:'ours',time:home.t.s,city:'kaverne/people',text:'\u2192 agents: '+brief().b+'. see you at six.'};
+      if(home&&K.k==='d')return {cls:'ours',time:home.t.s,city:'kaverne/review',text:'\u2192 people: three directions on the desk. over to you.'};
       var first=hit[0],others=hit.slice(1).map(function(o){return o.c[0];});
       var tail=others.length?'  ('+(others.length===1?others[0]:others.slice(0,-1).join(', ')+' and '+others[others.length-1])+' too)':'';
       return {cls:'edge',time:first.t.s,city:first.c[0],text:K.text(first.t)+tail};
@@ -321,7 +323,7 @@ function pick(){
     return {cls:'',time:tt.s,city:th.city[0],text:line};
   }
   /* after a while in the dark, the cavern starts seeing things */
-  if(!SEEDING&&watched>60&&now-lastDrift>15000&&Math.random()<0.16){lastDrift=now;var lh=local('Europe/London');return {cls:'drift',time:lh.s,city:'here',text:fresh(DRIFT,'d')};}
+  if(!SEEDING&&watched>60&&now-lastDrift>15000&&Math.random()<0.16){lastDrift=now;var lh=local(HOMETZ);return {cls:'drift',time:lh.s,city:'here',text:fresh(DRIFT,'d')};}
   /* ours, every so often */
   if(now-lastOurs>(18000+Math.random()*16000)){lastOurs=now;var h=opts.filter(function(o){return o.c[0]===HOME;})[0],w=ours();return {cls:'ours',time:h.t.s,city:'kaverne'+(w.role?'/'+w.role:''),text:w.text};}
   /* the edges of the night: dawn and dusk, wherever they are right now */

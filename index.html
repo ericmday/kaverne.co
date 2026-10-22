@@ -147,34 +147,49 @@ function tick(){
   countEl.innerHTML='night in '+DARK+' of '+CITIES.length+' cities<span class="here">  ·  '+local(HOMETZ,true).s+' here</span>'+(SEATS?'<span class="here">  ·  '+SEATS+' in the seats</span>':'');
   var d=NOW(),sec=d.getUTCHours()*3600+d.getUTCMinutes()*60+d.getUTCSeconds()+d.getUTCMilliseconds()/1000;
   tallyEl.textContent=Math.floor(sec*38.6+Math.sin(sec/7)*20).toLocaleString('en-US')+' things done tonight';
-  var p=progress();var st=p<0.1?'reading the brief':p<0.3?'boards':p<0.45?'look':p<0.65?'cut':p<0.75?'sound':p<0.88?'colour and type':'review';lab.innerHTML=p<=1?'kaverne  ·  '+st+' <b>'+(p*100).toFixed(2)+'%</b>':'kaverne  ·  with the people';
+  var p=progress();lab.innerHTML=p<=1?'kaverne  ·  night shift <b>'+(p*100).toFixed(2)+'%</b>':'kaverne  ·  with the people';
   var bw=band.clientWidth,lw=lab.offsetWidth;lab.style.left=Math.max(lw/2,Math.min(bw-lw/2,lonX(HOMELON)/100*bw))+'px';
 }
 
-/* ---------- kaverne's own night: one brief, timed to the studio's real night (pacific) ---------- */
+/* ---------- kaverne's own night: timed to the studio's real night (pacific) ---------- */
 function progress(){var d=NOW(),t=local(HOMETZ),mins=t.h*60+t.m+d.getSeconds()/60;return ((mins-22*60+1440)%1440)/(8*60);}
-/* ours: the people leave a brief at 22:00, the agents pass it between them through the night, the people choose at nine */
-var BRIEFS=[
- {b:'a title sequence for a film about lighthouses',d:'the lamp',s:'a foghorn, slowed down'},
- {b:'a launch film for a bicycle that folds in half',d:'the frame',s:'a freewheel ticking'},
- {b:'an identity for a bakery that only opens at night',d:'the crust',s:'the oven door'},
- {b:'a music video for a song about the tide',d:'wet sand',s:'the tide, backwards'},
- {b:'thirty seconds for a coffee roaster on an island',d:'the roast',s:'beans cooling'},
- {b:'posters for a museum’s new room of clocks',d:'brass',s:'four hundred clocks, out of step'}
+/* ours: the agents hand work to each other all night, in the language of the trade; the people take over by day */
+var CRAFT=[
+ ['colour','→ cut: lifted the blacks two points. the shadows were crushing on phones.'],
+ ['colour','→ comp: the sky was out of gamut for rec.709. pulled it back in.'],
+ ['colour','→ review: skin first. then the rest of the picture.'],
+ ['comp','→ gen: the matte chatters on frame 1,104. regenerating 1,097 to 1,121.'],
+ ['comp','→ review: clean plate on shot 12. the crowd is gone. the pigeons stayed.'],
+ ['comp','→ colour: grain matched to the plate. the cg was sitting on top like a sticker.'],
+ ['gen','→ comp: 121 frames. the model wants 8n+1. it’s 8n+1.'],
+ ['gen','→ look: seed 4471 has the right light. locking it.'],
+ ['gen','→ review: forty takes of the same pour. the coffee behaves in six.'],
+ ['gen','→ sound: the footsteps landed off the beat. retimed them to yours.'],
+ ['train','→ gen: character lora, step 2,400. she has the same ears in every shot now.'],
+ ['train','→ review: stopped at 3,000 steps. any longer and it only knows the one face.'],
+ ['look','→ gen: less contrast in the prompt, more in the grade. it holds up better.'],
+ ['look','→ boards: the 85 flattens the room. try it at 35.'],
+ ['boards','→ cut: the reverse is missing. you’ll want it at 0:14.'],
+ ['cut','→ sound: locked at 23.976. please don’t drift.'],
+ ['cut','→ review: cut on the blink. nobody will notice. that’s the point.'],
+ ['cut','→ boards: we don’t need the wide. the close-up already said it.'],
+ ['sound','→ cut: room tone under the dissolve. the silence was too clean.'],
+ ['sound','→ review: −14 lufs for the feeds, −23 for broadcast. two masters.'],
+ ['sound','→ colour: the hum at 60 hz was the fridge. it’s gone.'],
+ ['type','→ cut: the title needs four more frames to be read twice.'],
+ ['type','→ review: optical kerning on the “av”. the metrics were lying.'],
+ ['review','→ gen: the hands. count the fingers again.'],
+ ['review','→ comp: the reflection in the window doesn’t match the room.'],
+ ['review','→ cut: shorter.'],
+ ['review','→ everyone: it’s good. that isn’t the same as finished.']
 ];
-var shiftDay=new Intl.DateTimeFormat('en-CA',{timeZone:HOMETZ});
-function brief(){var d=shiftDay.format(new Date(NOW().getTime()-6*3600000)),h=0;for(var i=0;i<d.length;i++)h=(h*31+d.charCodeAt(i))|0;return BRIEFS[Math.abs(h)%BRIEFS.length];}
-function ours(){
-  var p=progress(),B=brief(),k=function(a,b,n){return Math.max(1,Math.min(n,1+Math.floor((p-a)/(b-a)*n)));},L=function(r,t){return {role:r,text:t};};
-  if(p>1)return rnd([L('','daylight. the agents rest; the people decide.'),L('people','→ review: the strange one. obviously.'),L('people','→ brief: tonight, something with the sea.'),L('','the people are in. they’re choosing.')]);
-  if(p<0.1)return rnd([L('brief','→ everyone: tonight, '+B.b+'.'),L('brief','→ boards: they said “quiet”. take that literally.'),L('boards','→ brief: how quiet?'),L('brief','→ boards: quieter than that.')]);
-  if(p<0.3){var f=k(0.1,0.3,40);return rnd([L('boards','→ look: frames 1–'+f+' are yours.'),L('look','→ boards: frame '+Math.max(1,f-3)+' is too busy.'),L('boards','→ cut: forty first ideas. most are bad. that’s the point.'),L('boards','→ boards: same shot, three ways. go.')]);}
-  if(p<0.45)return rnd([L('look','→ cut: a palette, taken from '+B.d+'. use it everywhere.'),L('look','→ review: six directions. one is strange. keep it?'),L('review','→ look: keep it.')]);
-  if(p<0.65){var c=k(0.45,0.65,12);return rnd([L('cut','→ sound: cut '+c+' is locked. it’s yours.'),L('review','→ cut: shorter.'),L('cut','→ review: cut '+c+'. shorter.'),L('cut','→ look: the last shot moved to first. check the light.')]);}
-  if(p<0.75)return rnd([L('sound','→ cut: '+B.s+', under the last shot. listen.'),L('cut','→ sound: quieter.'),L('sound','→ cut: quieter, then quieter.')]);
-  if(p<0.88){var g=k(0.75,0.88,6);return rnd([L('colour','→ cut: grade '+g+'. the shadows go a little blue.'),L('type','→ colour: the title gets lost in the dark. lift it?'),L('colour','→ type: lifted. a little.'),L('type','→ review: kerned twice.')]);}
-  return rnd([L('review','→ everyone: three directions. that’s the night.'),L('review','→ people: two we’d defend, one we’d fight for.'),L('review','→ cut: version two had a supporter. it’s written down.')]);
-}
+var DAYTIME=[
+ ['people','→ review: the strange one. obviously.'],
+ ['people','→ gen: the fingers are right now. thank you.'],
+ ['people','→ cut: the third version, with the music from the first.'],
+ ['','daylight. the agents rest; the people decide.']
+];
+function ours(){var w=progress()>1?fresh(DAYTIME,'day'):fresh(CRAFT,'craft');return {role:w[0],text:w[1]};}
 
 /* ---------- prisoner's cinema: what the dark makes of the lines going past ---------- */
 var DRIFT=['a horse crosses the far wall. there’s no horse.','something like a hand, high up on the left.','the drip sounds like someone counting.',
@@ -306,8 +321,8 @@ function pick(){
       if(!hit.length)continue;
       hit.forEach(function(o){marks[o.c[0]+K.k+day]=1;});
       var home=hit.filter(function(o){return o.c[0]===HOME;})[0];
-      if(home&&K.k==='j')return {cls:'ours',time:home.t.s,city:'kaverne/people',text:'\u2192 agents: '+brief().b+'. see you at six.'};
-      if(home&&K.k==='d')return {cls:'ours',time:home.t.s,city:'kaverne/review',text:'\u2192 people: three directions on the desk. over to you.'};
+      if(home&&K.k==='j')return {cls:'ours',time:home.t.s,city:'kaverne/people',text:'\u2192 agents: it\u2019s yours. see you at six.'};
+      if(home&&K.k==='d')return {cls:'ours',time:home.t.s,city:'kaverne/review',text:'\u2192 people: it\u2019s on the desk. over to you.'};
       var first=hit[0],others=hit.slice(1).map(function(o){return o.c[0];});
       var tail=others.length?'  ('+(others.length===1?others[0]:others.slice(0,-1).join(', ')+' and '+others[others.length-1])+' too)':'';
       return {cls:'edge',time:first.t.s,city:first.c[0],text:K.text(first.t)+tail};

@@ -530,12 +530,20 @@ function type(el,text,cps){
 }
 /* ---------- long jobs that come back further along ---------- */
 var JOBS=[
- {t:'a novel is being translated. chapter {n} of {max}.',max:31,step:[1,3],done:'the novel is translated. someone will read it first thing.'},
- {t:'an old film is being cleaned. frame {n} of {max}.',max:86400,step:[1800,5200],done:'the film is clean. it looks like the year it was made.'},
+ {t:'a novel is being translated. chapter {n} of {max}.',a:' the jokes are the hard part.',max:31,step:[1,3],done:'the novel is translated. someone will read it first thing.'},
+ {t:'an old film is being cleaned. frame {n} of {max}.',a:' the scratches go first.',max:86400,step:[1800,5200],done:'the film is clean. it looks like the year it was made.'},
  {t:'the buses are rescheduled for snow. route {n} of {max}.',max:212,step:[9,28],done:'every bus has a new timetable. it will snow at seven.'},
- {t:'a dictionary for a language with 900 speakers. entry {n}.',max:4000,step:[40,140],done:'the dictionary has 4,000 words. the speakers have more.'},
- {t:'someone\u2019s old photos are being restored. {n} of {max}. most are of the same dog.',max:1300,step:[30,95],done:'all 1,300 photos restored. it was a good dog.'},
- {t:'a harvest forecast for six valleys. valley {n} of {max}.',max:6,step:[1,1],done:'six valleys, all fine. the rain comes thursday.'}
+ {t:'a dictionary for a language with 900 speakers. entry {n}.',a:' there are eleven words for rain.',max:4000,step:[40,140],done:'the dictionary has 4,000 words. the speakers have more.'},
+ {t:'someone’s old photos are being restored. {n} of {max}.',a:' most are of the same dog.',max:1300,step:[30,95],done:'all 1,300 photos restored. it was a good dog.'},
+ {t:'a harvest forecast for six valleys. valley {n} of {max}.',max:6,step:[1,1],done:'six valleys, all fine. the rain comes thursday.'},
+ {t:'a city’s street trees are counted from the air. {n} of {max}.',a:' the oaks are winning.',max:48000,step:[2000,6000],done:'48,000 trees, counted. the oaks won.'},
+ {t:'a choir’s concert is mixed. song {n} of {max}.',a:' the altos asked to be louder.',max:14,step:[1,2],done:'the concert is mixed. the altos are louder.'},
+ {t:'a museum’s letters are transcribed. letter {n} of {max}.',a:' most are about the weather.',max:2600,step:[60,180],done:'2,600 letters, transcribed. it rained a lot in 1890.'},
+ {t:'a ferry’s winter timetable. sailing {n} of {max}.',max:96,step:[4,11],done:'the winter timetable is done. the sea gets the final say.'},
+ {t:'a radio archive is digitised. tape {n} of {max}.',a:' tape 212 is just someone laughing.',max:740,step:[15,45],done:'740 tapes, saved. the laughing one is everyone’s favourite.'},
+ {t:'a hospital’s scans are checked overnight. {n} of {max}.',max:380,step:[12,40],done:'380 scans checked. the doctors start at eight.'},
+ {t:'a family cookbook is typed up. recipe {n} of {max}.',a:' the measurements are “some” and “enough”.',max:212,step:[6,19],done:'212 recipes, typed. “enough” is now 200 grams.'},
+ {t:'a forest’s camera traps are sorted. photo {n} of {max}.',a:' mostly deer. one very surprised badger.',max:9000,step:[250,800],done:'9,000 photos sorted. the badger has a name now.'}
 ];
 var threads=[],lastThread=0,jobBag=[];
 function newThread(dark){if(!jobBag.length)jobBag=JOBS.slice();var j=jobBag.splice((Math.random()*jobBag.length)|0,1)[0];
@@ -543,7 +551,7 @@ function newThread(dark){if(!jobBag.length)jobBag=JOBS.slice();var j=jobBag.spli
 function fmtN(n){return n.toLocaleString('en-US');}
 function threadLine(th){var j=th.j;
   if(th.n>=j.max)return j.done;
-  return j.t.replace('{n}',fmtN(th.n)).replace('{max}',fmtN(j.max));}
+  var line=j.t.replace('{n}',fmtN(th.n)).replace('{max}',fmtN(j.max))+(th.seen?'':(j.a||''));th.seen=true;return line;}
 var marks={},SEEDING=false;
 function pick(){
   var now=Date.now(),opts=CITIES.map(function(c){var t=local(c[1]);return {c:c,t:t,p:phase(t.h)};});
@@ -568,7 +576,7 @@ function pick(){
   }
   /* a long job, every so often, picked up where it left off */
   var darkOpts=opts.filter(function(o){return o.p==='night';});
-  if(now-lastThread>7000&&Math.random()<0.3&&darkOpts.length){
+  if(now-lastThread>25000&&Math.random()<0.3&&darkOpts.length){
     lastThread=now;while(threads.length<3)threads.push(newThread(darkOpts));
     var th=rnd(threads),tz=CITIES.filter(function(c){return c===th.city;})[0],tt=local(tz[1]);
     var line=threadLine(th);

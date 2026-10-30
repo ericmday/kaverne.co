@@ -7,8 +7,9 @@
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap">
 <style>
-/* exploration: open a line into the cave. the world's night keeps going, faintly, above the conversation.
-   the crew is named in the header; whoever is speaking lights up. the work they show is drawn in the stream. */
+/* exploration: open a line into the cave. everything the agents make is shown with the home page's own devices:
+   the stream (your project becomes a long job), the cave wall (the work appears in letters, in firelight),
+   the planet band (their night, your pin), the tally, and the drift (the cave starts seeing your project). */
 :root{
   color-scheme:dark;
   --bg:#0A0A0A; --text:#B8B8B8; --hi:#E6E6E6; --chrome:#5E5E5E; --faint:#3A3A3A; --ember:#E07A34;
@@ -21,49 +22,58 @@ html,body{height:100%}
 html{background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--text);font:400 var(--fs)/var(--lh) var(--mono);-webkit-text-size-adjust:100%;font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0;overflow:hidden}
 .scr{position:relative;height:100%;min-height:440px;overflow:hidden}
+.glow{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .top,.bot{position:absolute;left:var(--m);right:var(--m);display:flex;justify-content:space-between;gap:16px;font-size:.78em;line-height:1.4}
 .top{top:calc(var(--m) * .55)}
 .bot{bottom:calc(var(--m) * .55)}
 .mark{color:var(--chrome)}
 .what{display:block;color:var(--text);margin-top:.5em}
+.tally{display:block;color:var(--faint);font-variant-numeric:tabular-nums;margin-top:.5em}
 .count{color:var(--faint);font-variant-numeric:tabular-nums;text-align:right}
-.mail,.forget{color:var(--chrome);text-decoration:none;transition:color .4s}
-.mail:hover,.mail:focus-visible,.forget:hover,.forget:focus-visible{color:var(--hi);outline:none}
-.forget{all:unset;font:inherit;color:var(--chrome);cursor:pointer}
+.mail{color:var(--chrome);text-decoration:none;transition:color .4s}
+.mail:hover,.mail:focus-visible{color:var(--hi);outline:none}
+.forget{all:unset;font:inherit;color:var(--chrome);cursor:pointer;transition:color .4s}
+.forget:hover,.forget:focus-visible{color:var(--hi)}
 
 /* the crew: everyone awake, the speaker lit */
-.crew{display:block;margin-top:.5em;color:var(--faint);opacity:0;transition:opacity 2.4s}
+.crew{display:block;margin-top:.5em;color:var(--chrome);opacity:0;transition:opacity 2.4s}
 .crew.on{opacity:1}
 .crew i{font-style:normal;transition:color .6s}
 .crew i.lit{color:var(--hi)}
 .crew i.ppl{color:var(--chrome)}
 
-.feed{position:absolute;left:var(--m);right:var(--m);top:calc(var(--m) * 1.4);bottom:calc(var(--m) * .55 + 4.4em);overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 30%);mask-image:linear-gradient(to bottom,transparent 0,#000 30%)}
+.feed{position:absolute;left:var(--m);right:var(--m);top:calc(var(--m) * 1.4);bottom:calc(var(--m) * .55 + 6.6em);overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 34%);mask-image:linear-gradient(to bottom,transparent 0,#000 34%)}
 .row{display:grid;grid-template-columns:6ch 14ch minmax(0,1fr);column-gap:2ch;white-space:pre-wrap;transition:color 1.2s,opacity 2.4s ease-out}
 .row .t{color:var(--chrome);font-variant-numeric:tabular-nums}
 .row .c{color:var(--chrome);overflow:hidden;white-space:nowrap}
 .row.world .x,.row.world .c,.row.world .t{color:var(--faint)}
 .row.ours .c,.row.ours .x{color:var(--hi)}
+.row.job .c{color:var(--hi)}
+.row.job .x{color:var(--text)}
 .row.you .c{color:var(--ember)}
 .row.you .x{color:var(--text)}
 .row.sys .x{color:var(--chrome)}
-/* the work: drawn, not written */
-.row.art{margin:.35em 0 .6em}
-.row.art .x{color:var(--text);white-space:pre;line-height:1.25;overflow:hidden}
-.row.art .x b{font-weight:400;color:var(--hi)}
-.row.art .x u{text-decoration:none;color:var(--chrome)}
-.sw{display:inline-block;width:8ch;height:2.2em;vertical-align:top;margin-right:1ch}
-.swl{display:inline-block;width:8ch;margin-right:1ch;color:var(--chrome);font-size:.82em;font-variant-numeric:tabular-nums}
-.spec{display:block;color:var(--hi);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.spec.a{font:italic 400 1.7em/1.2 Georgia,"Times New Roman",serif}
-.spec.b{font:700 1.15em/1.5 "Helvetica Neue",Arial,sans-serif;text-transform:uppercase;letter-spacing:.22em}
-.spec.c{font:400 1em/1.6 var(--mono);color:var(--text)}
+.row.drift .x{color:var(--text);font-style:italic}
+.row.drift .c{color:var(--faint)}
 .cur{display:inline-block;width:.6em;height:1.1em;vertical-align:-.2em;background:var(--chrome);margin-left:1px;animation:blink 1.1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
 
+/* one line of planet: where it is night right now; kaverne's pin and yours */
+.band{position:absolute;left:var(--m);right:var(--m);bottom:calc(var(--m) * .55 + 4.1em);height:1.6em}
+.band .cells{position:absolute;left:0;right:0;top:0;height:3px;display:flex;gap:2px}
+.band .cells i{flex:1 1 0;background:var(--faint);opacity:.35;transition:opacity 4s,background 4s}
+.band .cells i.n{background:var(--text);opacity:.55}
+.band .pin{position:absolute;top:-6px;width:1px;height:15px;background:var(--ember)}
+.band .pin.you{background:var(--text);opacity:0;transition:opacity 2.4s}
+.band .pin.you.on{opacity:1}
+.band .lab{position:absolute;top:14px;font-size:.72em;color:var(--chrome);white-space:nowrap;font-variant-numeric:tabular-nums}
+.band .lab b{font-weight:400;color:var(--hi)}
+.band .lab.you{opacity:0;transition:opacity 2.4s}
+.band .lab.you.on{opacity:1}
+
 /* the line you type on */
-.line{position:absolute;left:var(--m);right:var(--m);bottom:calc(var(--m) * .55 + 2em);display:grid;grid-template-columns:6ch 14ch minmax(0,1fr);column-gap:2ch;align-items:baseline}
+.line{position:absolute;left:var(--m);right:var(--m);bottom:calc(var(--m) * .55 + 1.9em);display:grid;grid-template-columns:6ch 14ch minmax(0,1fr);column-gap:2ch;align-items:baseline}
 .line .t{color:var(--chrome);font-variant-numeric:tabular-nums}
 .line .c{color:var(--ember)}
 .line input,.line button{all:unset;font:inherit;color:var(--hi);caret-color:var(--ember);width:100%}
@@ -71,24 +81,23 @@ body{margin:0;background:var(--bg);color:var(--text);font:400 var(--fs)/var(--lh
 .line button:hover,.line button:focus-visible{color:var(--hi)}
 .line input::placeholder{color:var(--faint)}
 .line.off{visibility:hidden}
-.line a{color:var(--hi);text-decoration:none;border-bottom:1px solid var(--faint)}
-.line a:hover,.line a:focus-visible{border-color:var(--ember);outline:none}
 
 @media (max-width:640px){
   .row,.line{grid-template-columns:5ch 9ch minmax(0,1fr);column-gap:1.4ch}
   .row .c .r{display:block}.here{display:none}
-  .feed{top:calc(var(--m) * .55 + 8.5em)}
-  .row.art .x{grid-column:1/-1;font-size:.82em}
+  .feed{top:calc(var(--m) * .55 + 9.5em);bottom:calc(var(--m) * .55 + 8.6em)}
+  .band{bottom:calc(var(--m) * .55 + 5.9em)}
+  .line{bottom:calc(var(--m) * .55 + 3.4em)}
   .crew{max-width:24ch;margin-left:auto}
-  .line{bottom:calc(var(--m) * .55 + 3.6em)}
-  .feed{bottom:calc(var(--m) * .55 + 6em)}
 }
-@media (prefers-reduced-motion:reduce){.cur{animation:none}.crew,.row{transition:none}}
+@media (prefers-reduced-motion:reduce){.cur{animation:none}.crew,.row,.band .pin.you,.band .lab.you{transition:none}}
 </style>
 
 <main class="scr">
-  <div class="top"><span class="mark">kaverne &nbsp;&middot;&nbsp; night shift<span class="what">an agentic creative studio. people by day, agents by night.</span></span><span class="count"><span id="count"></span><span class="crew" id="crew" aria-hidden="true"></span></span></div>
+  <canvas class="glow" id="glow" aria-hidden="true"></canvas>
+  <div class="top"><span class="mark">kaverne &nbsp;&middot;&nbsp; night shift<span class="what">an agentic creative studio. people by day, agents by night.</span><span class="tally" id="tally"></span></span><span class="count"><span id="count"></span><span class="crew" id="crew" aria-hidden="true"></span></span></div>
   <div class="feed" id="feed" role="log" aria-live="polite" aria-label="the night shift"></div>
+  <div class="band" id="band" aria-hidden="true"><div class="cells" id="cells"></div></div>
   <form class="line" id="line" autocomplete="off">
     <span class="t" id="lt"></span><span class="c">you</span>
     <span id="slot"><button type="button" id="go">› connect to the night shift</button></span>
@@ -98,15 +107,14 @@ body{margin:0;background:var(--bg);color:var(--text);font:400 var(--fs)/var(--lh
 
 <script>
 (function(){
-var TZ='America/Los_Angeles',RM=matchMedia('(prefers-reduced-motion: reduce)').matches,KEY='kaverne.line';
+var TZ='America/Los_Angeles',HOMELON=-118,RM=matchMedia('(prefers-reduced-motion: reduce)').matches,KEY='kaverne.line';
 var $=function(id){return document.getElementById(id);};
-var feed=$('feed'),line=$('line'),slot=$('slot'),lt=$('lt'),count=$('count'),crewEl=$('crew'),mem=$('mem');
+var feed=$('feed'),line=$('line'),slot=$('slot'),lt=$('lt'),count=$('count'),crewEl=$('crew'),mem=$('mem'),tallyEl=$('tally'),band=$('band'),cells=$('cells');
 var fmt={};function local(tz,sec){var k=tz+(sec?'s':'');var f=fmt[k]||(fmt[k]=new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:sec?'2-digit':undefined,hourCycle:'h23'}));var p={};f.formatToParts(new Date()).forEach(function(x){p[x.type]=x.value;});return {h:+p.hour,s:p.hour+':'+p.minute+(sec?':'+p.second:'')};}
 function rnd(a){return a[(Math.random()*a.length)|0];}
 function wait(ms){return new Promise(function(r){setTimeout(r,RM?ms*0.3:ms);});}
 function hash(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
-function tick(){count.innerHTML=local(TZ,true).s+'<span class="here"> here</span>';lt.textContent=local(TZ).s;}
-setInterval(tick,1000);tick();
+function isNight(h){return h>=22||h<6;}
 
 /* ---------- rows ---------- */
 function row(cls,time,who){var r=document.createElement('div');r.className='row'+(cls?' '+cls:'');
@@ -117,14 +125,82 @@ function row(cls,time,who){var r=document.createElement('div');r.className='row'
 function type(el,text,cps){return new Promise(function(res){if(RM){el.textContent=text;res();return;}var cur=document.createElement('span');cur.className='cur';el.appendChild(cur);var i=0;
   (function step(){if(i>=text.length){cur.remove();res();return;}el.insertBefore(document.createTextNode(text[i++]),cur);setTimeout(step,1000/cps*(0.6+Math.random()*0.8));})();});}
 
+/* ---------- the planet band: where it's night; kaverne's pin and yours ---------- */
+var N=72;for(var ci=0;ci<N;ci++)cells.appendChild(document.createElement('i'));
+var YOULON=Math.max(-179,Math.min(179,-new Date().getTimezoneOffset()/4));
+function lonX(l){return (l+180)/360;}
+function mk(cls){var e=document.createElement('span');e.className=cls;band.appendChild(e);return e;}
+var pinK=mk('pin'),pinY=mk('pin you'),labK=mk('lab'),labY=mk('lab you');
+function place(lab,x,bw){var lw=lab.offsetWidth;lab.style.left=Math.max(0,Math.min(bw-lw,x-lw/2))+'px';}
+function drawBand(){var d=new Date(),utc=d.getUTCHours()+d.getUTCMinutes()/60;
+  [].forEach.call(cells.children,function(c,i){var lon=-180+(i+0.5)*360/N,solar=(utc+lon/15+48)%24;c.className=(solar<5.5||solar>=19.5)?'n':'';});
+  var bw=band.clientWidth,xk=lonX(HOMELON)*bw,xy=lonX(YOULON)*bw,yh=d.getHours();
+  pinK.style.left=xk+'px';pinY.style.left=xy+'px';
+  var same=Math.abs(xk-xy)<bw*0.06;
+  labK.innerHTML='kaverne'+(isNight(local(TZ).h)?' · night':' · day')+(P0?'  <b>'+Math.round(jobProgress()*100)+'%</b>':'')+(same&&connected?' · you':'');
+  labY.textContent=same?'':'you'+(isNight(yh)?' · night':' · day');
+  place(labK,xk,bw);if(!same){place(labY,xy,bw);
+    /* if the two labels collide, put yours on the other side of its pin */
+    var a=labK.getBoundingClientRect(),b=labY.getBoundingClientRect();if(a.right>b.left&&b.right>a.left){labY.style.left=(xy<xk?Math.max(0,xy-labY.offsetWidth-4):Math.min(bw-labY.offsetWidth,xy+4))+'px';}}
+}
+function tick(){count.innerHTML=local(TZ,true).s+'<span class="here"> here</span>';lt.textContent=local(TZ).s;
+  var d=new Date(),sec=d.getUTCHours()*3600+d.getUTCMinutes()*60+d.getUTCSeconds();
+  tallyEl.textContent=P0?Math.floor((Date.now()-P0)/1000*1.7+3).toLocaleString('en-US')+' things done on yours':Math.floor(sec*38.6).toLocaleString('en-US')+' things done tonight';
+  drawBand();}
+
+/* ---------- the cave wall: shapes made of letters, in firelight ---------- */
+var glow=$('glow'),gx=glow.getContext('2d'),GW=0,GH=0,GFS=14,V=[];
+function sizeGlow(){var r=glow.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);GW=r.width;GH=r.height;glow.width=Math.round(GW*d);glow.height=Math.round(GH*d);gx.setTransform(d,0,0,d,0,0);GFS=Math.max(7,parseFloat(getComputedStyle(document.body).fontSize)*0.7);}
+window.addEventListener('resize',function(){sizeGlow();drawBand();});sizeGlow();
+function fromDraw(c,r,draw){var cv=document.createElement('canvas');cv.width=c;cv.height=r;var g=cv.getContext('2d');g.fillStyle='#fff';g.strokeStyle='#fff';g.scale(1,0.6);draw(g,c,r/0.6);var d=g.getImageData(0,0,c,r).data;return {c:c,r:r,v:function(x,y){return d[(y*c+x)*4+3]/255;}};}
+function scaled(m,k){var c=Math.max(4,Math.round(m.c*k)),r=Math.max(3,Math.round(m.r*k));return {c:c,r:r,v:function(x,y){var fx=x/k,fy=y/k,x0=Math.min(m.c-1,Math.floor(fx)),y0=Math.min(m.r-1,Math.floor(fy)),x1=Math.min(m.c-1,x0+1),y1=Math.min(m.r-1,y0+1),tx=fx-x0,ty=fy-y0;
+  return (m.v(x0,y0)*(1-tx)+m.v(x1,y0)*tx)*(1-ty)+(m.v(x0,y1)*(1-tx)+m.v(x1,y1)*tx)*ty;}};}
+function hash2(x,y){var h=Math.sin(x*127.1+y*311.7)*43758.5453;return h-Math.floor(h);}
+/* the work, as masks */
+var WALL={
+  mark:function(ch){return fromDraw(30,20,function(g,w,h){g.lineWidth=h*0.07;g.beginPath();g.arc(w/2,h/2,h*0.42,0,7);g.stroke();g.font='700 '+h*0.5+'px Georgia, serif';g.textAlign='center';g.textBaseline='middle';g.fillText(ch,w/2,h*0.53);});},
+  mono:function(t){return fromDraw(36,18,function(g,w,h){g.lineWidth=h*0.06;g.strokeRect(w*0.12,h*0.12,w*0.76,h*0.76);g.font='700 '+h*0.42+'px "Helvetica Neue", Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t.toUpperCase(),w/2,h*0.53,w*0.66);});},
+  word:function(wd){var c=Math.min(70,wd.length*8+4);return fromDraw(c,11,function(g,w,h){g.font='900 '+h*0.9+'px "Helvetica Neue", Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(wd.toUpperCase(),w/2,h*0.54,w*0.96);});},
+  serif:function(wd){var c=Math.min(70,wd.length*8+4);return fromDraw(c,12,function(g,w,h){g.font='italic 400 '+h*0.85+'px Georgia, serif';g.textAlign='center';g.textBaseline='middle';g.fillText(wd,w/2,h*0.55,w*0.96);});},
+  frame:function(k){return fromDraw(44,20,function(g,w,h){g.lineWidth=h*0.05;g.strokeRect(w*0.04,h*0.06,w*0.92,h*0.88);
+    if(k===0){g.fillRect(w*0.04,h*0.56,w*0.92,h*0.04);g.beginPath();g.arc(w*0.5,h*0.74,h*0.05,0,7);g.fill();}
+    if(k===1){g.beginPath();g.arc(w*0.5,h*0.32,h*0.11,0,7);g.fill();g.fillRect(w*0.42,h*0.46,w*0.16,h*0.48);}
+    if(k===2){g.beginPath();g.arc(w*0.18,h*0.26,h*0.06,0,7);g.fill();g.fillRect(w*0.56,h*0.72,w*0.3,h*0.06);}});},
+  wave:function(seed){return fromDraw(60,16,function(g,w,h){var hh=hash(seed);for(var i=0;i<30;i++){var t=i/29,env=Math.sin(Math.PI*Math.min(1,t*1.3))*(t>.7?1:.5);hh=Math.imul(hh^(hh>>>15),2246822507)>>>0;var v=Math.max(0.08,env*(.55+(hh%100)/220));g.fillRect(w*(0.03+i*0.032),h*(0.9-0.8*v),w*0.02,h*0.8*v);}});},
+  screen:function(){return fromDraw(44,24,function(g,w,h){g.lineWidth=h*0.04;g.strokeRect(w*0.04,h*0.05,w*0.92,h*0.9);g.fillRect(w*0.1,h*0.14,w*0.16,h*0.06);g.fillRect(w*0.66,h*0.14,w*0.22,h*0.06);g.fillRect(w*0.12,h*0.36,w*0.56,h*0.16);g.fillRect(w*0.12,h*0.58,w*0.36,h*0.05);g.strokeRect(w*0.12,h*0.72,w*0.22,h*0.1);});}
+};
+function spawn(m,letters,tint){if(!m||!GW)return;if(V.length>=4)V.shift();
+  var now=performance.now(),cw=GFS*0.6,lh=GFS,mx=Math.max(16,GW*0.06),tw=GW*(GW<700?0.62+Math.random()*0.2:0.28+Math.random()*0.14);
+  m=scaled(m,Math.min(tw/(m.c*cw),(GH*0.42)/(m.r*lh)));var w=m.c*cw,h=m.r*lh,best=null,bd=-1;
+  for(var tr=0;tr<10;tr++){var px=mx+Math.random()*Math.max(1,GW-w-2*mx),py=GH*0.08+Math.random()*Math.max(1,GH*0.5-h),cx=px+w/2,cy=py+h/2,dmin=1e9;
+    V.forEach(function(o){dmin=Math.min(dmin,Math.hypot(cx-(o.x0+o.m.c*cw/2),cy-(o.y0+o.m.r*lh/2)));});if(dmin>bd){bd=dmin;best=[px,py];}}
+  V.push({m:m,letters:(letters||'kaverne').replace(/\s+/g,''),x0:best[0],y0:best[1],t0:now,peak:0.12+Math.random()*0.05,ph:Math.random()*9,IN:3600,HOLD:10000+Math.random()*4000,OUT:6000,tint:tint||null});}
+function drawGlow(now){gx.clearRect(0,0,GW,GH);
+  if(V.length){gx.font=GFS+'px "JetBrains Mono", ui-monospace, monospace';gx.textBaseline='top';var cw=GFS*0.6,lh=GFS;
+    V=V.filter(function(v){var t=now-v.t0,env=t<v.IN?t/v.IN:t<v.IN+v.HOLD?1:1-(t-v.IN-v.HOLD)/v.OUT;if(env<=0)return false;env=env*env*(3-2*env);
+      var s=t/1000,fl=RM?1:0.8+0.1*Math.sin(s*5.3+v.ph)+0.07*Math.sin(s*11.9+v.ph*2)+0.05*Math.sin(s*23.1)+0.05*(Math.random()-0.5);
+      var step=RM?0:Math.floor(s*7),m=v.m,k=0,L=v.letters.length||1;
+      for(var y=0;y<m.r;y++)for(var x=0;x<m.c;x++){var d=m.v(x,y);if(d<0.18)continue;
+        var dx=(x/(m.c-1)-0.5)*2,dy=(y/(m.r-1)-0.5)*2,fe=Math.max(0,1-Math.sqrt(dx*dx*0.7+dy*dy*0.7));fe=Math.min(1,fe*1.9);fe=fe*fe*(3-2*fe);
+        var a=v.peak*env*fl*fe*(0.45+0.55*d)*(0.78+0.22*hash2(x+step*7,y+v.ph));var ch=v.letters[k++%L];if(a<0.004)continue;
+        var q=Math.min(1,d*fe*1.15),rr=200+55*q,gg=52+160*q*q,bb=28+120*q*q*q;
+        if(v.tint){rr=rr*0.45+v.tint[0]*0.55;gg=gg*0.45+v.tint[1]*0.55;bb=bb*0.45+v.tint[2]*0.55;}
+        gx.fillStyle='rgba('+Math.round(rr)+','+Math.round(gg)+','+Math.round(bb)+','+a.toFixed(3)+')';gx.fillText(ch,v.x0+x*cw,v.y0+y*lh);}
+      return true;});}
+  requestAnimationFrame(drawGlow);}
+requestAnimationFrame(drawGlow);
+
 /* ---------- the world's night, faint, never stopping ---------- */
 var CITIES=[['tokyo','Asia/Tokyo'],['seoul','Asia/Seoul'],['sydney','Australia/Sydney'],['auckland','Pacific/Auckland'],['manila','Asia/Manila'],['mumbai','Asia/Kolkata'],['dubai','Asia/Dubai'],['nairobi','Africa/Nairobi'],['lisbon','Europe/Lisbon'],['reykjavik','Atlantic/Reykjavik'],['new york','America/New_York'],['chicago','America/Chicago'],['honolulu','Pacific/Honolulu'],['anchorage','America/Anchorage'],['são paulo','America/Sao_Paulo'],['lagos','Africa/Lagos']];
 var NIGHT=['a backup completes. it always does.','a tsunami buoy reports nothing. that’s the good news.','a lighthouse foghorn stays quiet. clear night.','a seed vault in the arctic checks its temperature. cold enough.','a bakery’s ovens preheat themselves at three.','a crossword is checked. seventeen across was wrong.','a drone counts a flock of sheep and gets the same number twice.','a satellite reboots itself above the pacific.','a podcast is cleaned of every “um”.','a heart monitor in room 4 keeps steady time.','a canal lock fills for a boat due at dawn.','a cleaning robot finds a stuffed rabbit and goes around it.','a radio dish listens to the sky. mostly static. mostly.','a weather balloon is let go at midnight, on schedule.','a painting is x-rayed. there’s another painting underneath.','a night bus runs empty for one stop.','a garage door closes itself because somebody forgot.','a menu is translated. the jokes don’t make it.'];
 var used=[];function night(){var c=NIGHT.filter(function(x){return used.indexOf(x)<0;});if(!c.length){used=[];c=NIGHT;}var x=rnd(c);used.push(x);return x;}
-var connected=false,busy=false,AWAKE=0;
-function dark(){return CITIES.filter(function(c){var h=local(c[1]).h;return h>=22||h<6;});}
-async function world(){for(;;){if(!busy){var d=dark(),c=d.length?rnd(d):rnd(CITIES);var x=row(connected?'world':'',local(c[1]).s,c[0]);
-  if(connected)x.textContent=night();else await type(x,night(),24);}
+var connected=false,busy=false,AWAKE=0,connectedAt=0,lastDrift=0;
+function dark(){return CITIES.filter(function(c){return isNight(local(c[1]).h);});}
+async function world(){for(;;){if(!busy){
+  /* after a minute with a project, the cave starts seeing it */
+  if(D&&SUBJ&&Date.now()-connectedAt>60000&&Date.now()-lastDrift>30000&&Math.random()<0.3){lastDrift=Date.now();var dl=row('drift',local(TZ).s,'here');dl.textContent=driftLine();if(WORK.length)spawn(rnd(WORK)(),ANSWERS.join(' '),TINT);}
+  else{var d=dark(),c=d.length?rnd(d):rnd(CITIES);var x=row(connected?'world':'',local(c[1]).s,c[0]);
+    if(connected)x.textContent=night();else await type(x,night(),24);}}
   await wait(connected?8000+Math.random()*8000:1600+Math.random()*1800);}}
 
 /* ---------- the crew ---------- */
@@ -136,162 +212,158 @@ function lit(role){[].forEach.call(crewEl.querySelectorAll('i[data-r]'),function
 var STOP={a:1,an:1,the:1,for:1,of:1,to:1,and:1,that:1,which:1,only:1,at:1,in:1,on:1,my:1,our:1,new:1,about:1,with:1,is:1,it:1,we:1,i:1,some:1,this:1,just:1,really:1,very:1,like:1,want:1,need:1,make:1,making:1,something:1};
 function words(s){return s.toLowerCase().replace(/[^a-z0-9’'\s-]/g,' ').split(/\s+/).filter(function(w){return w&&!STOP[w];});}
 function frag(s){s=s.trim().replace(/\s+/g,' ').replace(/[.!?]+$/,'').toLowerCase();var m=s.match(/\b(?:for|about|of) (.{6,})$/);if(m)s=m[1];var w=s.split(' ');return w.length>9?w.slice(0,9).join(' ')+'…':s;}
-/* the noun the work is about: the first real word after "for/about/of", else the last real word */
-function subject(s){var m=s.toLowerCase().match(/\b(?:for|about|of) (.+)$/);var w=words(m?m[1]:s);var kinds=/^(logo|logos|brand|identity|film|video|website|site|app|album|song|book|poster|campaign|short|ad|record|music)$/;w=w.filter(function(x){return !kinds.test(x);});return w[0]||'kaverne';}
+var KINDS=/^(logo|logos|brand|identity|wordmark|mark|film|video|website|site|app|album|song|book|poster|posters|campaign|short|ad|record|music|cover)$/;
+function subject(s){var m=s.toLowerCase().match(/\b(?:for|about|of) (.+)$/);var w=words(m?m[1]:s).filter(function(x){return !KINDS.test(x);});return (w[0]||'kaverne').replace(/[’']s$/,'');}
+function initials(s){var w=words(s).filter(function(x){return /^[a-z]/.test(x)&&!KINDS.test(x);});return w.length>1?w[0][0]+w[w.length-1][0]:(w[0]||'k').slice(0,2);}
 var HUES={red:5,orange:25,amber:38,yellow:52,gold:45,green:125,olive:80,teal:175,cyan:188,blue:215,navy:225,indigo:245,purple:270,violet:265,lilac:280,pink:330,magenta:310,brown:28,rust:18};
-function colourWish(s){s=(s||'').toLowerCase();var no=[],yes=[];Object.keys(HUES).forEach(function(c){var re=new RegExp('(not|no|never|without|avoid|hate)\\s+(any\\s+)?'+c);if(re.test(s))no.push(c);else if(new RegExp('\\b'+c+'\\b').test(s))yes.push(c);});return {no:no,yes:yes};}
-
-/* ---------- the work ---------- */
-function hsl2hex(h,s,l){s/=100;l/=100;var k=function(n){return (n+h/30)%12;},a=s*Math.min(l,1-l),f=function(n){return l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));};return '#'+[f(0),f(8),f(4)].map(function(x){return Math.round(x*255).toString(16).padStart(2,'0');}).join('').toUpperCase();}
-function near(h,c){var d=Math.abs(((h-HUES[c])%360+540)%360-180);return d<28;}
-function palette(seed,wish){var h=hash(seed)%360;
-  if(wish.yes.length)h=(HUES[wish.yes[0]]+200)%360;
-  var spec=[[h,22,12],[h+18,26,30],[wish.yes.length?HUES[wish.yes[0]]:h+165,58,56],[h+8,16,86]];
-  spec=spec.map(function(p){var hh=(p[0]%360+360)%360;for(var g=0;g<12&&wish.no.some(function(c){return near(hh,c);});g++)hh=(hh+31)%360;return hsl2hex(hh,p[1],p[2]);});
-  return spec;}
-function swatches(cols){return '<span>'+cols.map(function(c){return '<span class="sw" style="background:'+c+'"></span>';}).join('')+'</span>\n<span>'+cols.map(function(c){return '<span class="swl">'+c+'</span>';}).join('')+'</span>';}
-function marks(subj,brief){var a=subj[0],ws=words(brief||subj).filter(function(x){return /^[a-z]/.test(x)&&!/^(logo|logos|brand|identity|wordmark|mark)$/.test(x);}),b=ws.length>1?ws[0][0]+'·'+ws[ws.length-1][0]:a+'·',w=subj.slice(0,10);
-  var pad=function(s,n){while(s.length<n)s+=' ';return s;};
-  return ['╭─────╮   ┌───────┐   '+w+'.',
-          '│  <b>'+a+'</b>  │   │ <b>'+pad(b,5)+'</b> │   '+'─'.repeat(w.length+1),
-          '╰─────╯   └───────┘   ',
-          '<u>  1         2         3</u>'].join('\n');}
-function boards(){return ['┌───────────┐ ┌───────────┐ ┌───────────┐',
-  '│           │ │     ▪     │ │ ▪         │',
-  '│───────────│ │    ▐█▌    │ │           │',
-  '│     ·     │ │    ▐█▌    │ │      ▬▬▬▬ │',
-  '└───────────┘ └───────────┘ └───────────┘',
-  '<u>  1 wide        2 close       3 the end</u>'].join('\n');}
-function wave(seed){var b='▁▂▃▄▅▆▇',h=hash(seed),out='';for(var i=0;i<40;i++){var t=i/39,env=Math.sin(Math.PI*Math.min(1,t*1.3))*(t>.7?1:.55);h=Math.imul(h^(h>>>15),2246822507)>>>0;var v=Math.max(0,Math.min(6,Math.round(env*6*(.55+(h%100)/220))));out+=b[v];}
-  return out+'\n<u>quiet                          then not</u>';}
-function wire(subj){return ['┌──────────────────────────┐',
-  '│ <b>'+subj.slice(0,8)+'</b>'+' '.repeat(Math.max(1,17-Math.min(8,subj.length)))+'▬ ▬ ▬ │',
-  '│                          │',
-  '│   ████████████████       │',
-  '│   ▬▬▬▬▬▬▬▬▬▬             │',
-  '│                          │',
-  '│   [ ▬▬▬▬▬ ]              │',
-  '└──────────────────────────┘',
-  '<u>  one screen. one idea. one button.</u>'].join('\n');}
-function specimen(subj){var s=subj.replace(/</g,'');return '<span class="spec a">'+s+'</span><span class="spec b">'+s+'</span><span class="spec c">'+s.split('').join(' ')+'</span>';}
-
-async function say(cls,who,text,cps){if(who.indexOf('kaverne/')===0)lit(who.slice(8));var x=row(cls,local(TZ).s,who);await type(x,text,cps||18);await wait(500+Math.random()*700);}
-async function show(who,html,byLine){lit(who.slice(8));var x=row('art',local(TZ).s,'');
-  if(RM||!byLine){x.innerHTML=html;await wait(900);return;}
-  var lines=html.split('\n');for(var i=0;i<lines.length;i++){x.innerHTML+= (i?'\n':'')+lines[i];await wait(140);}await wait(900);}
+function colourWish(s){s=(s||'').toLowerCase();var no=[],yes=[];Object.keys(HUES).forEach(function(c){if(new RegExp('(not|no|never|without|avoid|hate)\\s+(any\\s+)?'+c).test(s))no.push(c);else if(new RegExp('\\b'+c+'\\b').test(s))yes.push(c);});return {no:no,yes:yes};}
+function hsl2rgb(h,s,l){s/=100;l/=100;var k=function(n){return (n+h/30)%12;},a=s*Math.min(l,1-l),f=function(n){return l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));};return [f(0),f(8),f(4)].map(function(x){return Math.round(x*255);});}
+function hex(c){return '#'+c.map(function(x){return x.toString(16).padStart(2,'0');}).join('').toUpperCase();}
+function near(h,c){return Math.abs(((h-HUES[c])%360+540)%360-180)<28;}
+function palette(seed,wish){var h=hash(seed)%360;if(wish.yes.length)h=(HUES[wish.yes[0]]+200)%360;
+  return [[h,22,12],[h+18,26,30],[wish.yes.length?HUES[wish.yes[0]]:h+165,58,56],[h+8,16,86]].map(function(p){var hh=(p[0]%360+360)%360;for(var g=0;g<12&&wish.no.some(function(c){return near(hh,c);});g++)hh=(hh+31)%360;return hsl2rgb(hh,p[1],p[2]);});}
 
 /* ---------- what each kind of work gets ---------- */
 var DOMAINS=[
  {id:'logo',k:/logo|brand|identity|mark|wordmark/i,crew:['logo','type','colour','design','review'],
   first:function(f){return [['logo','→ type: “'+f+'”. sketching marks. forty, then one.'],['type','→ colour: it’s going to want a typeface before it wants a colour.']];},ask:['colour','→ you: is there a colour it can’t be?'],
-  work:['marks','specimen','palette'],
+  show:[['logo','→ you: three marks. on the wall.','marks'],['type','→ you: “{s}”, two ways. on the wall.','type']],
+  job:{role:'logo',t:'{s}: mark {n} of {max}.',a:' most are too clever.',max:40,done:'{s}: forty marks. one stays.'},
   after:['logo','→ review: mark 3 holds at 16 pixels. 1 doesn’t.','type','→ logo: the counter in the a is closing up small. opening it.','colour','→ logo: tried the mark in one colour. it’s stronger.','review','→ logo: 2 is clever. that’s the problem with it.','design','→ logo: clear space is the height of the x.']},
  {id:'film',k:/film|video|\bad\b|commercial|trailer|short|documentary|spot|reel/i,crew:['boards','gen','cut','sound','colour','review'],
   first:function(f){return [['boards','→ cut: “'+f+'”. first frames by morning.'],['sound','→ boards: what does it sound like with the picture off?']];},ask:['cut','→ you: how long does it get to be?'],
-  work:['boards','palette'],
+  show:[['boards','→ you: three frames. on the wall. 2 is the one.','frames']],
+  job:{role:'boards',t:'{s}: frame {n} of {max}.',a:' the light keeps changing.',max:24,done:'{s}: 24 frames. the film is in six of them.'},
   after:['cut','→ boards: frame 2 is the film. the others are setting it up.','gen','→ cut: twelve takes of frame 2. the light only behaves in three.','sound','→ cut: room tone under the end. the silence was too clean.','colour','→ cut: matching the close-up to the wide on the skin, not the sky.','review','→ everyone: shorter. it’s always shorter.']},
  {id:'music',k:/song|album|music|track|record|band|\bep\b|single|score/i,crew:['score','sound','design','colour','review'],
   first:function(f){return [['score','→ sound: “'+f+'”. listening first. no notes yet.'],['design','→ score: the cover has to work at the size of a thumbnail.']];},ask:['score','→ you: what should it feel like at the end?'],
-  work:['wave','palette'],
+  show:[['score','→ you: the shape of it, before any notes. on the wall.','wave'],['design','→ you: the cover, roughly. on the wall.','type']],
+  job:{role:'score',t:'{s}: bar {n} of {max}.',a:' the quiet part is the hard part.',max:64,done:'{s}: 64 bars. the quiet part is the song.'},
   after:['score','→ sound: down a semitone. it sat too bright.','sound','→ score: the kick and the bass fight at 60 hz. carving the bass.','design','→ colour: the cover reads from across a room now.','review','→ score: took the drums out of verse two. it breathes.']},
  {id:'words',k:/book|novel|script|story|poem|essay|copy|writing|newsletter|zine/i,crew:['words','type','design','review'],
   first:function(f){return [['words','→ review: “'+f+'”. reading it aloud before touching it.'],['type','→ words: a page that size wants about sixty characters a line.']];},ask:['words','→ you: who is it for? one person is enough.'],
-  work:['specimen'],
+  show:[['type','→ you: “{s}”, set two ways. on the wall.','type']],
+  job:{role:'words',t:'{s}: draft {n} of {max}.',a:' the first line keeps surviving.',max:9,done:'{s}: nine drafts. the first line survived all of them.'},
   after:['words','→ review: cut every “very”. nothing got weaker.','type','→ words: a widow on page two. one word cut, gone.','words','→ type: the title wants to break after the second word.','review','→ words: say the thing you’re scared to say.']},
  {id:'site',k:/site|website|\bapp\b|web|page|product|launch|platform/i,crew:['design','words','type','colour','review'],
   first:function(f){return [['design','→ words: “'+f+'”. one idea per screen. which one goes first?'],['words','→ design: the button can’t say “submit”.']];},ask:['design','→ you: what should someone do in the first ten seconds?'],
-  work:['wire','specimen'],
+  show:[['design','→ you: the first screen. on the wall.','screen'],['type','→ you: “{s}”, two ways. on the wall.','type']],
+  job:{role:'design',t:'{s}: screen {n} of {max}.',a:' the first one is doing all the work.',max:12,done:'{s}: twelve screens. the first one does the work.'},
   after:['design','→ review: moved everything four pixels. you’d have felt it.','colour','→ design: the link colour passes 4.5:1 now.','words','→ design: the headline was nine words. it’s four.','type','→ design: the measure was ninety characters. sixty now.']},
- {id:'print',k:/poster|print|packaging|label|magazine|book cover|flyer|card/i,crew:['design','colour','type','review'],
+ {id:'print',k:/poster|print|packaging|label|magazine|flyer|card/i,crew:['design','colour','type','review'],
   first:function(f){return [['design','→ colour: “'+f+'”. paper first, then everything else.'],['colour','→ design: the screen is rgb. the paper isn’t. noted early.']];},ask:['design','→ you: where will people see it?'],
-  work:['palette','specimen'],
+  show:[['type','→ you: “{s}”, big. on the wall.','type']],
+  job:{role:'design',t:'{s}: proof {n} of {max}.',a:' the paper keeps winning.',max:8,done:'{s}: eight proofs. the paper won.'},
   after:['colour','→ design: rich black, 60/40/40/100. the plain black proofed grey.','design','→ type: 3 mm bleed. the photo stopped a millimetre short.','type','→ design: that hairline won’t survive uncoated stock.','review','→ design: the white space is doing the work. leave it.']}
 ];
 var DEFAULT={id:'any',crew:['look','boards','words','colour','review'],
   first:function(f){return [['look','→ boards: “'+f+'”. forty directions. most will be bad. that’s the point.'],['words','→ look: say it in one sentence first.']];},ask:['review','→ you: what would make you say “that’s it”?'],
-  work:['boards','palette'],
+  show:[['boards','→ you: three directions. on the wall.','frames']],
+  job:{role:'look',t:'{s}: direction {n} of {max}.',a:' one of them is strange.',max:40,done:'{s}: forty directions. the strange one is still here.'},
   after:['look','→ review: six directions. one is strange. keeping it.','boards','→ look: frame 3 has the light.','colour','→ look: warm highlights, cool shadows.','review','→ everyone: the safe one is in the folder. so is the one we’d make.']};
-var WORK_LINE={
-  marks:['logo','→ you: three marks. the third is the one nobody asked for.'],
-  specimen:['type','→ you: “{s}”, three ways.'],
-  palette:['colour','→ you: four colours.{wish}'],
-  boards:['boards','→ you: three frames. 2 is the one.'],
-  wave:['score','→ you: the shape of it, before any notes.'],
-  wire:['design','→ you: the first screen. one idea, one button.']
-};
+function domainById(id){return DOMAINS.filter(function(d){return d.id===id;})[0]||DEFAULT;}
+
+/* ---------- the project: answers, the work on the wall, the long job ---------- */
+var ANSWERS=[],D=null,SUBJ='',TINT=null,WORK=[],P0=0,jobSeen=false,jobDone=false,noteI=0;
+function buildWork(){var sub=SUBJ,ini=initials(ANSWERS[0]||sub),out=[];
+  D.show.forEach(function(s){var k=s[2];
+    if(k==='marks'){out.push(function(){return WALL.mark(sub[0]);},function(){return WALL.mono(ini);},function(){return WALL.serif(sub);});}
+    if(k==='type'){out.push(function(){return WALL.word(sub);},function(){return WALL.serif(sub);});}
+    if(k==='frames'){out.push(function(){return WALL.frame(0);},function(){return WALL.frame(1);},function(){return WALL.frame(2);});}
+    if(k==='wave'){out.push(function(){return WALL.wave(ANSWERS.join(' '));});}
+    if(k==='screen'){out.push(function(){return WALL.screen();});}});
+  WORK=out;}
+function jobProgress(){return P0?Math.min(1,(Date.now()-P0)/(RM?120000:360000)):0;}
+function jobLine(){var j=D.job,n=Math.max(1,Math.min(j.max,Math.ceil(jobProgress()*j.max)));
+  if(n>=j.max){jobDone=true;return j.done.replace('{s}',SUBJ);}
+  var t=j.t.replace('{s}',SUBJ).replace('{n}',n).replace('{max}',j.max)+(jobSeen?'':j.a);jobSeen=true;return t;}
+var DRIFT=['something like a {s} on the far wall. there’s no {s}.','the drip sounds like someone saying “{s}”.','for a moment the wall looks like your {k}.','a shape, high up on the left. it might be mark 3.','the water sounds like a room full of people agreeing.'];
+function driftLine(){var kind={logo:'logo',film:'film',music:'record',words:'book',site:'site',print:'poster',any:'idea'}[D.id];return rnd(DRIFT).replace(/\{s\}/g,SUBJ).replace('{k}',kind);}
 
 /* ---------- memory: only in this browser ---------- */
-function recall(){try{var m=JSON.parse(localStorage.getItem(KEY)||'null');if(m&&Date.now()-m.t<7*864e5)return m;}catch(e){}return null;}
-function remember(m){try{localStorage.setItem(KEY,JSON.stringify(m));}catch(e){}showForget();}
+function recall(){try{var m=JSON.parse(localStorage.getItem(KEY)||'null');if(m&&m.a&&Date.now()-m.t<7*864e5)return m;}catch(e){}return null;}
+function remember(){try{localStorage.setItem(KEY,JSON.stringify({a:ANSWERS,d:D.id,t:Date.now(),p0:P0}));}catch(e){}showForget();}
 function showForget(){mem.innerHTML=recall()?' · <button class="forget" id="fg">forget me</button>':'';var b=$('fg');if(b)b.onclick=function(){try{localStorage.removeItem(KEY);}catch(e){}mem.textContent=' · forgotten.';};}
 
 /* ---------- the conversation ---------- */
-var answers=[],D=null,afterTimer=null;
+async function say(cls,who,text,cps){if(who.indexOf('kaverne/')===0)lit(who.slice(8));var x=row(cls,local(TZ).s,who);await type(x,text,cps||18);await wait(500+Math.random()*700);}
 function prompt(ph){slot.innerHTML='';var i=document.createElement('input');i.id='in';i.maxLength=200;i.placeholder=ph;i.setAttribute('aria-label',ph);slot.appendChild(i);line.classList.remove('off');i.focus({preventScroll:true});}
 
 async function connect(){
-  connected=true;busy=true;line.classList.add('off');
+  connected=true;connectedAt=Date.now();busy=true;line.classList.add('off');
   [].forEach.call(feed.querySelectorAll('.row'),function(r){r.classList.add('world');});
-  var h=local(TZ).h,isNight=(h>=22||h<6);PEOPLE=isNight?0:2+((Math.random()*2)|0);
-  var awake=CREW.slice(0,isNight?8+((Math.random()*5)|0):3+((Math.random()*3)|0));if(awake.indexOf('review')<0)awake.push('review');
-  AWAKE=awake.length;drawCrew(awake);crewEl.classList.add('on');
+  var nt=isNight(local(TZ).h);PEOPLE=nt?0:2+((Math.random()*2)|0);
+  var awake=CREW.slice(0,nt?8+((Math.random()*5)|0):3+((Math.random()*3)|0));if(awake.indexOf('review')<0)awake.push('review');
+  AWAKE=awake.length;drawCrew(awake);crewEl.classList.add('on');pinY.classList.add('on');labY.classList.add('on');drawBand();
   await say('you','you','connect kaverne',30);
   await say('sys','kaverne','opening a line into the cave.',22);
-  await say('sys','kaverne','it’s '+local(TZ).s+' in los angeles. '+awake.length+' agents awake, '+PEOPLE+(PEOPLE===1?' person.':' people.'),22);
+  await say('sys','kaverne','it’s '+local(TZ).s+' in los angeles. '+AWAKE+' agents awake, '+PEOPLE+(PEOPLE===1?' person.':' people.'),22);
+  if(D){/* back again: pick it up where it is */
+    await say('ours','kaverne/review','→ you: still on “'+frag(ANSWERS[0])+'”. it’s further along.',15);
+    await say('job','kaverne/'+D.job.role,jobLine(),18);
+    if(WORK.length)spawn(rnd(WORK)(),ANSWERS.join(' '),TINT);
+    busy=false;prompt('say more, or just watch');work();return;}
   await say('ours','kaverne/review','→ you: what are you making?',15);
   busy=false;prompt('a sentence is plenty');
 }
 async function answer(text){
-  answers.push(text);busy=true;line.classList.add('off');
+  busy=true;line.classList.add('off');
   await say('you','you',text,60);
-  if(answers.length>2){
-    if(text){var r=rnd(D.crew.filter(function(x){return x!=='review';}));await say('ours','kaverne/review','→ '+r+': “'+frag(text)+'”. yours.',15);
-      await say('ours','kaverne/'+r,rnd(['→ you: on it.','→ you: noted. trying it both ways.','→ you: good. that changes the first one.','→ you: yes. it was missing that.','→ review: doing it. showing you the difference later.']),16);}
-    remember({s:frag(answers[0]),a:answers,d:D.id,t:Date.now()});
-    busy=false;keepOpen();return;
-  }
-  if(answers.length===1){
-    D=DOMAINS.filter(function(d){return d.k.test(text);})[0]||DEFAULT;
+  if(ANSWERS.length>=2){/* anything after the work goes to the crew */
+    if(text){ANSWERS.push(text);var r=rnd(D.crew.filter(function(x){return x!=='review';}));
+      await say('ours','kaverne/review','→ '+r+': “'+frag(text)+'”. yours.',15);
+      await say('ours','kaverne/'+r,rnd(['→ you: on it.','→ you: noted. trying it both ways.','→ you: good. that changes the first one.','→ you: yes. it was missing that.']),16);
+      remember();}
+    busy=false;prompt('say more, or just watch');return;}
+  ANSWERS.push(text);
+  if(ANSWERS.length===1){
+    D=DOMAINS.filter(function(d){return d.k.test(text);})[0]||DEFAULT;SUBJ=subject(text);
     var awake=D.crew.slice(0,Math.max(3,AWAKE));drawCrew(awake.concat(CREW.filter(function(r){return awake.indexOf(r)<0;})).slice(0,Math.max(awake.length,AWAKE)));
     var ls=D.first(frag(text));for(var i=0;i<ls.length;i++)await say('ours','kaverne/'+ls[i][0],ls[i][1],15);
     await say('ours','kaverne/'+D.ask[0],D.ask[1],15);
-    busy=false;prompt('answer, or skip with enter');return;
-  }
-  /* the payoff: they show you something */
-  var subj=subject(answers[0]),wish=colourWish(text);
+    busy=false;prompt('answer, or skip with enter');return;}
+  /* second answer: the colours, then the work appears on the wall */
+  var wish=colourWish(text),pal=palette(ANSWERS.join(' '),wish);TINT=pal[2];
   if(text)await say('ours','kaverne/review','→ everyone: noted: “'+frag(text)+'”.',15);
   await say('sys','kaverne','an hour passes, roughly.',26);
-  for(var w=0;w<D.work.length;w++){var kind=D.work[w],wl=WORK_LINE[kind];
-    var note=wl[1].replace('{s}',subj).replace('{wish}',wish.no.length?' no '+wish.no.join(', no ')+'. checked.':wish.yes.length?' built around the '+wish.yes[0]+'.':' the third one is doing the work.');
-    await say('ours','kaverne/'+wl[0],note,16);
-    if(kind==='marks')await show('kaverne/logo',marks(subj,answers[0]),true);
-    if(kind==='specimen')await show('kaverne/type',specimen(subj),false);
-    if(kind==='palette')await show('kaverne/colour',swatches(palette(answers.join(' '),wish)),false);
-    if(kind==='boards')await show('kaverne/boards',boards(),true);
-    if(kind==='wave')await show('kaverne/score',wave(answers.join(' ')),false);
-    if(kind==='wire')await show('kaverne/design',wire(subj),true);
-  }
-  await say('ours','kaverne/review','→ you: rough, on purpose. we’ll keep going.',15);
-  remember({s:frag(answers[0]),a:answers,d:D.id,t:Date.now()});
-  busy=false;keepOpen();murmur(0);
+  await say('ours','kaverne/colour','→ you: four colours. '+pal.map(hex).join(' ')+'.'+(wish.no.length?' no '+wish.no.join(', no ')+'. checked.':wish.yes.length?' built around the '+wish.yes[0]+'.':''),16);
+  buildWork();var wi=0;
+  for(var s=0;s<D.show.length;s++){var sh=D.show[s],n=sh[2]==='marks'||sh[2]==='frames'?3:sh[2]==='type'?2:1;
+    await say('ours','kaverne/'+sh[0],sh[1].replace('{s}',SUBJ),16);
+    for(var q=0;q<n&&wi<WORK.length;q++,wi++){spawn(WORK[wi](),ANSWERS.join(' '),TINT);await wait(1400);}}
+  await say('ours','kaverne/review','→ you: rough, on purpose. press . to see it again. we’ll keep going.',15);
+  P0=Date.now();remember();
+  busy=false;prompt('say more, or just watch');work();
 }
-function keepOpen(){prompt('say more, or just watch');}
-/* after you stop talking, they keep going: a few more notes, then quiet */
-function murmur(n){if(!D||n>=5||n*2>=D.after.length)return;afterTimer=setTimeout(async function(){if(document.hidden||busy){murmur(n);return;}
-  var i=n*2,last=(n===4||(n+1)*2>=D.after.length);busy=true;await say('ours','kaverne/'+D.after[i],D.after[i+1],16);busy=false;
-  if(last)await say('sys','kaverne','the line stays open. they’ll keep going without you.',22);
-  murmur(n+1);},RM?6000:(15000+Math.random()*10000));}
+/* the night goes on: your project comes back as a long job, with notes in between */
+var working=false;
+function work(){if(working)return;working=true;var k=0;
+  (async function loop(){for(;;){await wait(RM?7000:14000+Math.random()*10000);
+    if(document.hidden||busy)continue;busy=true;
+    if(!jobDone&&(k%2===0||noteI*2>=D.after.length)){await say('job','kaverne/'+D.job.role,jobLine(),18);if(jobDone&&WORK.length)spawn(WORK[0](),ANSWERS.join(' '),TINT);}
+    else if(noteI*2<D.after.length){var i=noteI*2;noteI++;await say('ours','kaverne/'+D.after[i],D.after[i+1],16);}
+    else{await say('sys','kaverne','the line stays open. they’ll keep going without you.',22);busy=false;working=false;return;}
+    k++;busy=false;remember();}})();}
 
 $('go').addEventListener('click',connect);
-line.addEventListener('submit',function(e){e.preventDefault();var i=$('in');if(!i||busy)return;var v=i.value.trim();if(!v&&answers.length===0)return;i.value='';answer(v);});
-document.addEventListener('keydown',function(e){if(!connected&&e.key==='Enter'&&!e.metaKey){e.preventDefault();connect();}});
+line.addEventListener('submit',function(e){e.preventDefault();var i=$('in');if(!i||busy)return;var v=i.value.trim();if(!v&&ANSWERS.length===0)return;i.value='';answer(v);});
+document.addEventListener('keydown',function(e){
+  if(!connected&&e.key==='Enter'&&!e.metaKey){e.preventDefault();connect();return;}
+  /* . brings your work back to the wall; before that, it pulls a word from the stream */
+  var typing=document.activeElement&&document.activeElement.tagName==='INPUT'&&document.activeElement.value!=='';
+  if(e.key==='.'&&!e.metaKey&&!e.ctrlKey&&!typing){if(document.activeElement&&document.activeElement.tagName==='INPUT')e.preventDefault();
+    if(WORK.length)spawn(rnd(WORK)(),ANSWERS.join(' '),TINT);
+    else{var rows=feed.querySelectorAll('.row .x');if(rows.length){var t=rows[rows.length-1-((Math.random()*Math.min(4,rows.length))|0)].textContent,w=t.split(/\s+/).filter(function(x){return x.length>4;});if(w.length)spawn(WALL.word(rnd(w).replace(/[^a-z]/gi,'')),t);}}}
+});
 
 /* ---------- open mid-night; if you've been here, they say so ---------- */
 (function seed(){for(var k=0;k<6;k++){var c=rnd(dark().length?dark():CITIES);row('',local(c[1]).s,c[0]).textContent=night();}
   var m=recall();showForget();
-  if(m){var mins=Math.max(1,Math.round((Date.now()-m.t)/60000)),n=Math.min(400,Math.max(1,Math.round(mins/7)));
-    var x=row('ours',local(TZ).s,'kaverne/review');x.textContent='→ you: welcome back. still on “'+m.s+'”. '+n+' more sketch'+(n===1?'':'es')+' since you left.';
-    $('go').textContent='› pick the line back up';}
+  if(m){ANSWERS=m.a;D=domainById(m.d);SUBJ=subject(ANSWERS[0]);P0=m.p0||m.t;jobSeen=true;var pal=palette(ANSWERS.slice(0,2).join(' '),colourWish(ANSWERS[1]||''));TINT=pal[2];buildWork();
+    var x=row('ours',local(TZ).s,'kaverne/review'),pc=Math.round(jobProgress()*100);
+    x.textContent='→ you: welcome back. “'+frag(ANSWERS[0])+'” is '+(pc>=100?'done for tonight.':pc+'% along.');
+    $('go').textContent='› pick the line back up';setTimeout(function(){if(WORK.length)spawn(rnd(WORK)(),ANSWERS.join(' '),TINT);},2500);}
+  tick();setInterval(tick,1000);
 })();
 world();
 })();

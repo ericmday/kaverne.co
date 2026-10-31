@@ -662,7 +662,7 @@ function labRow(r,e){if(SEEDING)return;r.dataset.text=e.text||'';r.dataset.city=
       var free=W.slice().sort(function(a,b){return (a.drops.length-b.drops.length)||(Math.abs(a.x-p2[0])-Math.abs(b.x-p2[0]));})[0];
       free.drops.forEach(function(d){if(!d.fall)d.fall={t0:performance.now()};});var id=++wordId,step=G.fs*0.95,need=18+wd2.length*step;if(free.len<need)free.len=need;
       wd2.split('').forEach(function(ch,k){setTimeout(function(){var pp=rowPoint(G,r,0.2+k*0.08);if(pp)launch(ch,pp,free,false,'drift',{p:Math.min(0.98,(14+k*step)/free.len),word:id});},k*330);});}
-    else if(CL==='web'){var ls=letters(e.text,3),row_=++wordId;ls.forEach(function(ch,k){setTimeout(function(){var pp=rowPoint(G,r,Math.random());if(pp)launch(ch,pp,nearest(pp[0]),false,'drift',{row:row_});},k*380);});}
+    else if(CL==='web'){if(Math.random()>0.45)return;var ls=letters(e.text,2),row_=++wordId;ls.forEach(function(ch,k){setTimeout(function(){var pp=rowPoint(G,r,Math.random());if(pp)launch(ch,pp,nearest(pp[0]),false,'drift',{row:row_});},k*380);});}
     else if(CL==='lure'){letters(e.text,2).forEach(function(ch,k){setTimeout(function(){var pp=rowPoint(G,r);if(pp)launch(ch,pp,lured(pp[0]),false,'moth');},k*420);});}
     else if(CL==='warm'||CL==='long'){letters(e.text,e.cls==='ours'?3:1+((Math.random()*2)|0)).forEach(function(ch,k){setTimeout(function(){var pp=rowPoint(G,r);if(pp)launch(ch,pp,nearest(pp[0]),false,'drift',{warm:e.cls==='ours'});},k*420);});}
   },1400);}

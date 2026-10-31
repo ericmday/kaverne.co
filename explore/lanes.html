@@ -342,7 +342,7 @@ function jobProgress(){return P0?Math.min(1,(Date.now()-P0)/(RM?120000:360000)):
 function jobLine(){var j=D.job,n=Math.max(1,Math.min(j.max,Math.ceil(jobProgress()*j.max)));
   if(n>=j.max){jobDone=true;return j.done.replace('{s}',SUBJ);}
   var t=j.t.replace('{s}',SUBJ).replace('{n}',n).replace('{max}',j.max)+(jobSeen?'':j.a);jobSeen=true;return t;}
-var DRIFT=['something like a {s} on the far wall. there’s no {s}.','the drip sounds like someone saying “{s}”.','for a moment the wall looks like your {k}.','a shape, high up on the left. it might be mark 3.','the water sounds like a room full of people agreeing.'];
+var DRIFT=['something like a {s} on the far wall. there’s no {s}.','the drip sounds like someone saying “{s}”.','for a moment the wall looks like your {k}.','a shape, high up on the left. it might be ours.','the water sounds like a room full of people agreeing.'];
 function driftLine(){var kind={logo:'logo',film:'film',music:'record',words:'book',site:'site',print:'poster',any:'idea'}[D.id];return rnd(DRIFT).replace(/\{s\}/g,SUBJ).replace('{k}',kind);}
 
 /* ---------- memory: only in this browser ---------- */

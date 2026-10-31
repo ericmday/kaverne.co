@@ -7,9 +7,8 @@
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap">
 <style>
-/* exploration: open a line into the cave. everything the agents make is shown with the home page's own devices:
-   the stream (your project becomes a long job), the cave wall (the work appears in letters, in firelight),
-   the planet band (their night, your pin), the tally, and the drift (the cave starts seeing your project). */
+/* exploration, one clear version: tell the night shift what you're making; the agents talk it through,
+   ask one question, then show real first drafts and keep going while you watch. */
 :root{
   color-scheme:dark;
   --bg:#0A0A0A; --text:#B8B8B8; --hi:#E6E6E6; --chrome:#5E5E5E; --faint:#3A3A3A; --ember:#E07A34;
@@ -22,29 +21,18 @@ html,body{height:100%}
 html{background:var(--bg)}
 body{margin:0;background:var(--bg);color:var(--text);font:400 var(--fs)/var(--lh) var(--mono);-webkit-text-size-adjust:100%;font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0;overflow:hidden}
 .scr{position:relative;height:100%;min-height:440px;overflow:hidden}
-.glow{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .top,.bot{position:absolute;left:var(--m);right:var(--m);display:flex;justify-content:space-between;gap:16px;font-size:.78em;line-height:1.4}
 .top{top:calc(var(--m) * .55)}
 .bot{bottom:calc(var(--m) * .55)}
 .mark{color:var(--chrome)}
 .what{display:block;color:var(--text);margin-top:.5em}
-.tally{display:block;color:var(--faint);font-variant-numeric:tabular-nums;margin-top:.5em}
 .count{color:var(--faint);font-variant-numeric:tabular-nums;text-align:right}
 .mail{color:var(--chrome);text-decoration:none;transition:color .4s}
 .mail:hover,.mail:focus-visible{color:var(--hi);outline:none}
-.forget{all:unset;font:inherit;color:var(--chrome);cursor:pointer;transition:color .4s}
-.forget:hover,.forget:focus-visible{color:var(--hi)}
 
-/* the crew: everyone awake, the speaker lit */
-.crew{display:block;margin-top:.5em;color:var(--chrome);opacity:0;transition:opacity 2.4s}
-.crew.on{opacity:1}
-.crew i{font-style:normal;transition:color .6s}
-.crew i.lit{color:var(--hi)}
-.crew i.ppl{color:var(--chrome)}
-
-.feed{position:absolute;left:var(--m);right:var(--m);top:calc(var(--m) * 1.4);bottom:calc(var(--m) * .55 + 6.6em);overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;
-  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 34%);mask-image:linear-gradient(to bottom,transparent 0,#000 34%)}
-.row{display:grid;grid-template-columns:6ch 14ch minmax(0,1fr);column-gap:2ch;white-space:pre-wrap;transition:color 1.2s,opacity 2.4s ease-out}
+.feed{position:absolute;left:var(--m);right:var(--m);top:calc(var(--m) * 1.2);bottom:calc(var(--m) * .55 + 4.2em);overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 22%);mask-image:linear-gradient(to bottom,transparent 0,#000 22%)}
+.row{display:grid;grid-template-columns:6ch 14ch minmax(0,1fr);column-gap:2ch;white-space:pre-wrap}
 .row .t{color:var(--chrome);font-variant-numeric:tabular-nums}
 .row .c{color:var(--chrome);overflow:hidden;white-space:nowrap}
 .row.world .x,.row.world .c,.row.world .t{color:var(--faint)}
@@ -54,317 +42,233 @@ body{margin:0;background:var(--bg);color:var(--text);font:400 var(--fs)/var(--lh
 .row.you .c{color:var(--ember)}
 .row.you .x{color:var(--text)}
 .row.sys .x{color:var(--chrome)}
-.row.drift .x{color:var(--text);font-style:italic}
-.row.drift .c{color:var(--faint)}
+.row.intro .x{color:var(--text)}
 .cur{display:inline-block;width:.6em;height:1.1em;vertical-align:-.2em;background:var(--chrome);margin-left:1px;animation:blink 1.1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
 
-/* one line of planet: where it is night right now; kaverne's pin and yours */
-.band{position:absolute;left:var(--m);right:var(--m);bottom:calc(var(--m) * .55 + 4.1em);height:1.6em}
-.band .cells{position:absolute;left:0;right:0;top:0;height:3px;display:flex;gap:2px}
-.band .cells i{flex:1 1 0;background:var(--faint);opacity:.35;transition:opacity 4s,background 4s}
-.band .cells i.n{background:var(--text);opacity:.55}
-.band .pin{position:absolute;top:-6px;width:1px;height:15px;background:var(--ember)}
-.band .pin.you{background:var(--text);opacity:0;transition:opacity 2.4s}
-.band .pin.you.on{opacity:1}
-.band .lab{position:absolute;top:14px;font-size:.72em;color:var(--chrome);white-space:nowrap;font-variant-numeric:tabular-nums}
-.band .lab b{font-weight:400;color:var(--hi)}
-.band .lab.you{opacity:0;transition:opacity 2.4s}
-.band .lab.you.on{opacity:1}
+/* the drafts: drawn plainly, so you can see what they made */
+.row.work{margin:.5em 0 .9em}
+.row.work .x{white-space:normal}
+.draft{display:flex;flex-wrap:wrap;gap:1.6em 2.2em;align-items:flex-end;opacity:0;transform:translateY(6px);transition:opacity 1.2s ease,transform 1.2s ease}
+.draft.in{opacity:1;transform:none}
+.draft figure{margin:0;display:flex;flex-direction:column;align-items:flex-start;gap:.5em}
+.draft figcaption{font-size:.78em;color:var(--chrome)}
+.draft svg{display:block;stroke:var(--hi);fill:none;stroke-width:1.4}
+.draft svg .f{fill:var(--hi);stroke:none}
+.draft svg text{fill:var(--hi);stroke:none}
+.draft .sw{display:block;width:4.2em;height:3em;border-radius:2px}
+.draft .spec{display:block;color:var(--hi);white-space:nowrap}
+.draft .spec.a{font:italic 400 2em/1.1 Georgia,"Times New Roman",serif}
+.draft .spec.b{font:700 1.3em/1.4 "Helvetica Neue",Arial,sans-serif;text-transform:uppercase;letter-spacing:.2em}
+.draft .spec.c{font:400 1.1em/1.6 var(--mono);color:var(--text);letter-spacing:.35em}
+.draft.big svg{stroke-width:1.6}
 
 /* the line you type on */
 .line{position:absolute;left:var(--m);right:var(--m);bottom:calc(var(--m) * .55 + 1.9em);display:grid;grid-template-columns:6ch 14ch minmax(0,1fr);column-gap:2ch;align-items:baseline}
 .line .t{color:var(--chrome);font-variant-numeric:tabular-nums}
 .line .c{color:var(--ember)}
 .line input,.line button{all:unset;font:inherit;color:var(--hi);caret-color:var(--ember);width:100%}
-.line button{color:var(--chrome);cursor:pointer;transition:color .4s;width:auto}
-.line button:hover,.line button:focus-visible{color:var(--hi)}
-.line input::placeholder{color:var(--faint)}
+.line button{color:var(--hi);cursor:pointer;width:auto;border-bottom:1px solid var(--faint);transition:border-color .4s}
+.line button:hover,.line button:focus-visible{border-color:var(--ember)}
+.line input::placeholder{color:var(--chrome)}
 .line.off{visibility:hidden}
 
 @media (max-width:640px){
   .row,.line{grid-template-columns:5ch 9ch minmax(0,1fr);column-gap:1.4ch}
   .row .c .r{display:block}.here{display:none}
-  .feed{top:calc(var(--m) * .55 + 9.5em);bottom:calc(var(--m) * .55 + 8.6em)}
-  .band{bottom:calc(var(--m) * .55 + 5.9em)}
-  .line{bottom:calc(var(--m) * .55 + 3.4em)}
-  .crew{max-width:24ch;margin-left:auto}
+  .feed{top:calc(var(--m) * .55 + 7em);bottom:calc(var(--m) * .55 + 5.6em)}
+  .line{bottom:calc(var(--m) * .55 + 3.2em)}
+  .row.work .x{grid-column:1/-1}
+  .draft{gap:1.2em 1.4em;font-size:.9em}
 }
-@media (prefers-reduced-motion:reduce){.cur{animation:none}.crew,.row,.band .pin.you,.band .lab.you{transition:none}}
+@media (prefers-reduced-motion:reduce){.cur{animation:none}.draft{transition:none;opacity:1;transform:none}}
 </style>
 
 <main class="scr">
-  <canvas class="glow" id="glow" aria-hidden="true"></canvas>
-  <div class="top"><span class="mark">kaverne &nbsp;&middot;&nbsp; night shift<span class="what">an agentic creative studio. people by day, agents by night.</span><span class="tally" id="tally"></span></span><span class="count"><span id="count"></span><span class="crew" id="crew" aria-hidden="true"></span></span></div>
+  <div class="top"><span class="mark">kaverne &nbsp;&middot;&nbsp; night shift<span class="what">an agentic creative studio. people by day, agents by night.</span></span><span class="count" id="count"></span></div>
   <div class="feed" id="feed" role="log" aria-live="polite" aria-label="the night shift"></div>
-  <div class="band" id="band" aria-hidden="true"><div class="cells" id="cells"></div></div>
   <form class="line" id="line" autocomplete="off">
     <span class="t" id="lt"></span><span class="c">you</span>
-    <span id="slot"><button type="button" id="go">› connect to the night shift</button></span>
+    <span id="slot"><button type="button" id="go">connect to the night shift ›</button></span>
   </form>
-  <div class="bot"><span class="mark">nothing you type leaves this page.<span id="mem"></span></span><a class="mail" href="mailto:hello@kaverne.co">hello@kaverne.co</a></div>
+  <div class="bot"><span class="mark">a demo. nothing you type leaves this page.</span><a class="mail" href="mailto:hello@kaverne.co">hello@kaverne.co</a></div>
 </main>
 
 <script>
 (function(){
-var TZ='America/Los_Angeles',HOMELON=-118,RM=matchMedia('(prefers-reduced-motion: reduce)').matches,KEY='kaverne.line';
+var TZ='America/Los_Angeles',RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 var $=function(id){return document.getElementById(id);};
-var feed=$('feed'),line=$('line'),slot=$('slot'),lt=$('lt'),count=$('count'),crewEl=$('crew'),mem=$('mem'),tallyEl=$('tally'),band=$('band'),cells=$('cells');
+var feed=$('feed'),line=$('line'),slot=$('slot'),lt=$('lt'),count=$('count');
 var fmt={};function local(tz,sec){var k=tz+(sec?'s':'');var f=fmt[k]||(fmt[k]=new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:sec?'2-digit':undefined,hourCycle:'h23'}));var p={};f.formatToParts(new Date()).forEach(function(x){p[x.type]=x.value;});return {h:+p.hour,s:p.hour+':'+p.minute+(sec?':'+p.second:'')};}
 function rnd(a){return a[(Math.random()*a.length)|0];}
 function wait(ms){return new Promise(function(r){setTimeout(r,RM?ms*0.3:ms);});}
 function hash(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
-function isNight(h){return h>=22||h<6;}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function tick(){count.innerHTML=local(TZ,true).s+'<span class="here"> in los angeles</span>';lt.textContent=local(TZ).s;}
+setInterval(tick,1000);tick();
 
 /* ---------- rows ---------- */
 function row(cls,time,who){var r=document.createElement('div');r.className='row'+(cls?' '+cls:'');
   var a=document.createElement('span');a.className='t';a.textContent=time;
   var b=document.createElement('span');b.className='c';var sl=who.indexOf('/');b.textContent=sl<0?who:who.slice(0,sl);if(sl>=0){var q=document.createElement('span');q.className='r';q.textContent=who.slice(sl);b.appendChild(q);}
   var x=document.createElement('span');x.className='x';r.appendChild(a);r.appendChild(b);r.appendChild(x);feed.appendChild(r);
-  while(feed.children.length>48)feed.removeChild(feed.firstChild);return x;}
+  while(feed.children.length>40)feed.removeChild(feed.firstChild);return x;}
 function type(el,text,cps){return new Promise(function(res){if(RM){el.textContent=text;res();return;}var cur=document.createElement('span');cur.className='cur';el.appendChild(cur);var i=0;
   (function step(){if(i>=text.length){cur.remove();res();return;}el.insertBefore(document.createTextNode(text[i++]),cur);setTimeout(step,1000/cps*(0.6+Math.random()*0.8));})();});}
+async function say(cls,who,text,cps){var x=row(cls,local(TZ).s,who);await type(x,text,cps||18);await wait(450+Math.random()*600);}
+async function show(html,big){var x=row('work','','');var d=document.createElement('div');d.className='draft'+(big?' big':'');d.innerHTML=html;x.appendChild(d);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){d.classList.add('in');});});await wait(1600);}
 
-/* ---------- the planet band: where it's night; kaverne's pin and yours ---------- */
-var N=72;for(var ci=0;ci<N;ci++)cells.appendChild(document.createElement('i'));
-var YOULON=Math.max(-179,Math.min(179,-new Date().getTimezoneOffset()/4));
-function lonX(l){return (l+180)/360;}
-function mk(cls){var e=document.createElement('span');e.className=cls;band.appendChild(e);return e;}
-var pinK=mk('pin'),pinY=mk('pin you'),labK=mk('lab'),labY=mk('lab you');
-function place(lab,x,bw){var lw=lab.offsetWidth;lab.style.left=Math.max(0,Math.min(bw-lw,x-lw/2))+'px';}
-function drawBand(){var d=new Date(),utc=d.getUTCHours()+d.getUTCMinutes()/60;
-  [].forEach.call(cells.children,function(c,i){var lon=-180+(i+0.5)*360/N,solar=(utc+lon/15+48)%24;c.className=(solar<5.5||solar>=19.5)?'n':'';});
-  var bw=band.clientWidth,xk=lonX(HOMELON)*bw,xy=lonX(YOULON)*bw,yh=d.getHours();
-  pinK.style.left=xk+'px';pinY.style.left=xy+'px';
-  var same=Math.abs(xk-xy)<bw*0.06;
-  labK.innerHTML='kaverne'+(isNight(local(TZ).h)?' · night':' · day')+(P0?'  <b>'+Math.round(jobProgress()*100)+'%</b>':'')+(same&&connected?' · you':'');
-  labY.textContent=same?'':'you'+(isNight(yh)?' · night':' · day');
-  place(labK,xk,bw);if(!same){place(labY,xy,bw);
-    /* if the two labels collide, put yours on the other side of its pin */
-    var a=labK.getBoundingClientRect(),b=labY.getBoundingClientRect();if(a.right>b.left&&b.right>a.left){labY.style.left=(xy<xk?Math.max(0,xy-labY.offsetWidth-4):Math.min(bw-labY.offsetWidth,xy+4))+'px';}}
-}
-function tick(){count.innerHTML=local(TZ,true).s+'<span class="here"> here</span>';lt.textContent=local(TZ).s;
-  var d=new Date(),sec=d.getUTCHours()*3600+d.getUTCMinutes()*60+d.getUTCSeconds();
-  tallyEl.textContent=P0?Math.floor((Date.now()-P0)/1000*1.7+3).toLocaleString('en-US')+' things done on yours':Math.floor(sec*38.6).toLocaleString('en-US')+' things done tonight';
-  drawBand();}
-
-/* ---------- the cave wall: shapes made of letters, in firelight ---------- */
-var glow=$('glow'),gx=glow.getContext('2d'),GW=0,GH=0,GFS=14,V=[];
-function sizeGlow(){var r=glow.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);GW=r.width;GH=r.height;glow.width=Math.round(GW*d);glow.height=Math.round(GH*d);gx.setTransform(d,0,0,d,0,0);GFS=Math.max(7,parseFloat(getComputedStyle(document.body).fontSize)*0.7);}
-window.addEventListener('resize',function(){sizeGlow();drawBand();});sizeGlow();
-function fromDraw(c,r,draw){var cv=document.createElement('canvas');cv.width=c;cv.height=r;var g=cv.getContext('2d');g.fillStyle='#fff';g.strokeStyle='#fff';g.scale(1,0.6);draw(g,c,r/0.6);var d=g.getImageData(0,0,c,r).data;return {c:c,r:r,v:function(x,y){return d[(y*c+x)*4+3]/255;}};}
-function scaled(m,k){var c=Math.max(4,Math.round(m.c*k)),r=Math.max(3,Math.round(m.r*k));return {c:c,r:r,v:function(x,y){var fx=x/k,fy=y/k,x0=Math.min(m.c-1,Math.floor(fx)),y0=Math.min(m.r-1,Math.floor(fy)),x1=Math.min(m.c-1,x0+1),y1=Math.min(m.r-1,y0+1),tx=fx-x0,ty=fy-y0;
-  return (m.v(x0,y0)*(1-tx)+m.v(x1,y0)*tx)*(1-ty)+(m.v(x0,y1)*(1-tx)+m.v(x1,y1)*tx)*ty;}};}
-function hash2(x,y){var h=Math.sin(x*127.1+y*311.7)*43758.5453;return h-Math.floor(h);}
-/* the work, as masks */
-var WALL={
-  mark:function(ch){return fromDraw(30,20,function(g,w,h){g.lineWidth=h*0.07;g.beginPath();g.arc(w/2,h/2,h*0.42,0,7);g.stroke();g.font='700 '+h*0.5+'px Georgia, serif';g.textAlign='center';g.textBaseline='middle';g.fillText(ch,w/2,h*0.53);});},
-  mono:function(t){return fromDraw(36,18,function(g,w,h){g.lineWidth=h*0.06;g.strokeRect(w*0.12,h*0.12,w*0.76,h*0.76);g.font='700 '+h*0.42+'px "Helvetica Neue", Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t.toUpperCase(),w/2,h*0.53,w*0.66);});},
-  word:function(wd){var c=Math.min(70,wd.length*8+4);return fromDraw(c,11,function(g,w,h){g.font='900 '+h*0.9+'px "Helvetica Neue", Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(wd.toUpperCase(),w/2,h*0.54,w*0.96);});},
-  serif:function(wd){var c=Math.min(70,wd.length*8+4);return fromDraw(c,12,function(g,w,h){g.font='italic 400 '+h*0.85+'px Georgia, serif';g.textAlign='center';g.textBaseline='middle';g.fillText(wd,w/2,h*0.55,w*0.96);});},
-  frame:function(k){return fromDraw(44,20,function(g,w,h){g.lineWidth=h*0.05;g.strokeRect(w*0.04,h*0.06,w*0.92,h*0.88);
-    if(k===0){g.fillRect(w*0.04,h*0.56,w*0.92,h*0.04);g.beginPath();g.arc(w*0.5,h*0.74,h*0.05,0,7);g.fill();}
-    if(k===1){g.beginPath();g.arc(w*0.5,h*0.32,h*0.11,0,7);g.fill();g.fillRect(w*0.42,h*0.46,w*0.16,h*0.48);}
-    if(k===2){g.beginPath();g.arc(w*0.18,h*0.26,h*0.06,0,7);g.fill();g.fillRect(w*0.56,h*0.72,w*0.3,h*0.06);}});},
-  wave:function(seed){return fromDraw(60,16,function(g,w,h){var hh=hash(seed);for(var i=0;i<30;i++){var t=i/29,env=Math.sin(Math.PI*Math.min(1,t*1.3))*(t>.7?1:.5);hh=Math.imul(hh^(hh>>>15),2246822507)>>>0;var v=Math.max(0.08,env*(.55+(hh%100)/220));g.fillRect(w*(0.03+i*0.032),h*(0.9-0.8*v),w*0.02,h*0.8*v);}});},
-  screen:function(){return fromDraw(44,24,function(g,w,h){g.lineWidth=h*0.04;g.strokeRect(w*0.04,h*0.05,w*0.92,h*0.9);g.fillRect(w*0.1,h*0.14,w*0.16,h*0.06);g.fillRect(w*0.66,h*0.14,w*0.22,h*0.06);g.fillRect(w*0.12,h*0.36,w*0.56,h*0.16);g.fillRect(w*0.12,h*0.58,w*0.36,h*0.05);g.strokeRect(w*0.12,h*0.72,w*0.22,h*0.1);});}
-};
-function spawn(m,letters,tint){if(!m||!GW)return;if(V.length>=4)V.shift();
-  var now=performance.now(),cw=GFS*0.6,lh=GFS,mx=Math.max(16,GW*0.06),tw=GW*(GW<700?0.62+Math.random()*0.2:0.28+Math.random()*0.14);
-  m=scaled(m,Math.min(tw/(m.c*cw),(GH*0.42)/(m.r*lh)));var w=m.c*cw,h=m.r*lh,best=null,bd=-1;
-  for(var tr=0;tr<10;tr++){var px=mx+Math.random()*Math.max(1,GW-w-2*mx),py=GH*0.08+Math.random()*Math.max(1,GH*0.5-h),cx=px+w/2,cy=py+h/2,dmin=1e9;
-    V.forEach(function(o){dmin=Math.min(dmin,Math.hypot(cx-(o.x0+o.m.c*cw/2),cy-(o.y0+o.m.r*lh/2)));});if(dmin>bd){bd=dmin;best=[px,py];}}
-  V.push({m:m,letters:(letters||'kaverne').replace(/\s+/g,''),x0:best[0],y0:best[1],t0:now,peak:0.12+Math.random()*0.05,ph:Math.random()*9,IN:3600,HOLD:10000+Math.random()*4000,OUT:6000,tint:tint||null});}
-function drawGlow(now){gx.clearRect(0,0,GW,GH);
-  if(V.length){gx.font=GFS+'px "JetBrains Mono", ui-monospace, monospace';gx.textBaseline='top';var cw=GFS*0.6,lh=GFS;
-    V=V.filter(function(v){var t=now-v.t0,env=t<v.IN?t/v.IN:t<v.IN+v.HOLD?1:1-(t-v.IN-v.HOLD)/v.OUT;if(env<=0)return false;env=env*env*(3-2*env);
-      var s=t/1000,fl=RM?1:0.8+0.1*Math.sin(s*5.3+v.ph)+0.07*Math.sin(s*11.9+v.ph*2)+0.05*Math.sin(s*23.1)+0.05*(Math.random()-0.5);
-      var step=RM?0:Math.floor(s*7),m=v.m,k=0,L=v.letters.length||1;
-      for(var y=0;y<m.r;y++)for(var x=0;x<m.c;x++){var d=m.v(x,y);if(d<0.18)continue;
-        var dx=(x/(m.c-1)-0.5)*2,dy=(y/(m.r-1)-0.5)*2,fe=Math.max(0,1-Math.sqrt(dx*dx*0.7+dy*dy*0.7));fe=Math.min(1,fe*1.9);fe=fe*fe*(3-2*fe);
-        var a=v.peak*env*fl*fe*(0.45+0.55*d)*(0.78+0.22*hash2(x+step*7,y+v.ph));var ch=v.letters[k++%L];if(a<0.004)continue;
-        var q=Math.min(1,d*fe*1.15),rr=200+55*q,gg=52+160*q*q,bb=28+120*q*q*q;
-        if(v.tint){rr=rr*0.45+v.tint[0]*0.55;gg=gg*0.45+v.tint[1]*0.55;bb=bb*0.45+v.tint[2]*0.55;}
-        gx.fillStyle='rgba('+Math.round(rr)+','+Math.round(gg)+','+Math.round(bb)+','+a.toFixed(3)+')';gx.fillText(ch,v.x0+x*cw,v.y0+y*lh);}
-      return true;});}
-  requestAnimationFrame(drawGlow);}
-requestAnimationFrame(drawGlow);
-
-/* ---------- the world's night, faint, never stopping ---------- */
+/* ---------- the world's night, faint and slow, behind the conversation ---------- */
 var CITIES=[['tokyo','Asia/Tokyo'],['seoul','Asia/Seoul'],['sydney','Australia/Sydney'],['auckland','Pacific/Auckland'],['manila','Asia/Manila'],['mumbai','Asia/Kolkata'],['dubai','Asia/Dubai'],['nairobi','Africa/Nairobi'],['lisbon','Europe/Lisbon'],['reykjavik','Atlantic/Reykjavik'],['new york','America/New_York'],['chicago','America/Chicago'],['honolulu','Pacific/Honolulu'],['anchorage','America/Anchorage'],['são paulo','America/Sao_Paulo'],['lagos','Africa/Lagos']];
-var NIGHT=['a backup completes. it always does.','a tsunami buoy reports nothing. that’s the good news.','a lighthouse foghorn stays quiet. clear night.','a seed vault in the arctic checks its temperature. cold enough.','a bakery’s ovens preheat themselves at three.','a crossword is checked. seventeen across was wrong.','a drone counts a flock of sheep and gets the same number twice.','a satellite reboots itself above the pacific.','a podcast is cleaned of every “um”.','a heart monitor in room 4 keeps steady time.','a canal lock fills for a boat due at dawn.','a cleaning robot finds a stuffed rabbit and goes around it.','a radio dish listens to the sky. mostly static. mostly.','a weather balloon is let go at midnight, on schedule.','a painting is x-rayed. there’s another painting underneath.','a night bus runs empty for one stop.','a garage door closes itself because somebody forgot.','a menu is translated. the jokes don’t make it.'];
+var NIGHT=['a backup completes. it always does.','a tsunami buoy reports nothing. that’s the good news.','a lighthouse foghorn stays quiet. clear night.','a seed vault in the arctic checks its temperature. cold enough.','a bakery’s ovens preheat themselves at three.','a crossword is checked. seventeen across was wrong.','a drone counts a flock of sheep and gets the same number twice.','a satellite reboots itself above the pacific.','a podcast is cleaned of every “um”.','a canal lock fills for a boat due at dawn.','a cleaning robot finds a stuffed rabbit and goes around it.','a weather balloon is let go at midnight, on schedule.','a painting is x-rayed. there’s another painting underneath.','a night bus runs empty for one stop.','a menu is translated. the jokes don’t make it.'];
 var used=[];function night(){var c=NIGHT.filter(function(x){return used.indexOf(x)<0;});if(!c.length){used=[];c=NIGHT;}var x=rnd(c);used.push(x);return x;}
-var connected=false,busy=false,AWAKE=0,connectedAt=0,lastDrift=0;
-function dark(){return CITIES.filter(function(c){return isNight(local(c[1]).h);});}
-async function world(){for(;;){if(!busy){
-  /* after a minute with a project, the cave starts seeing it */
-  if(D&&SUBJ&&Date.now()-connectedAt>60000&&Date.now()-lastDrift>30000&&Math.random()<0.3){lastDrift=Date.now();var dl=row('drift',local(TZ).s,'here');dl.textContent=driftLine();if(WORK.length)spawn(rnd(WORK)(),ANSWERS.join(' '),TINT);}
-  else{var d=dark(),c=d.length?rnd(d):rnd(CITIES);var x=row(connected?'world':'',local(c[1]).s,c[0]);
-    if(connected)x.textContent=night();else await type(x,night(),24);}}
-  await wait(connected?8000+Math.random()*8000:1600+Math.random()*1800);}}
-
-/* ---------- the crew ---------- */
-var CREW=['boards','look','gen','cut','sound','score','colour','type','logo','design','words','review'],PEOPLE=0;
-function drawCrew(awake){crewEl.innerHTML=awake.map(function(r){return '<i data-r="'+r+'">'+r+'</i>';}).join(' ')+'  <i class="ppl">'+(PEOPLE?PEOPLE+' people':'0 people')+'</i>';}
-function lit(role){[].forEach.call(crewEl.querySelectorAll('i[data-r]'),function(i){i.classList.toggle('lit',i.getAttribute('data-r')===role);});}
+function dark(){return CITIES.filter(function(c){var h=local(c[1]).h;return h>=22||h<6;});}
+var connected=false,busy=false;
+async function world(){for(;;){
+  await wait(connected?14000+Math.random()*10000:2200+Math.random()*2000);
+  if(busy)continue;var d=dark(),c=d.length?rnd(d):rnd(CITIES);var x=row(connected?'world':'',local(c[1]).s,c[0]);
+  if(connected)x.textContent=night();else await type(x,night(),26);}}
 
 /* ---------- reading what you said ---------- */
 var STOP={a:1,an:1,the:1,for:1,of:1,to:1,and:1,that:1,which:1,only:1,at:1,in:1,on:1,my:1,our:1,new:1,about:1,with:1,is:1,it:1,we:1,i:1,some:1,this:1,just:1,really:1,very:1,like:1,want:1,need:1,make:1,making:1,something:1};
+var KINDS=/^(logo|logos|brand|branding|identity|wordmark|mark|film|video|music|website|site|app|album|song|book|poster|posters|campaign|short|ad|record|cover|launch)$/;
 function words(s){return s.toLowerCase().replace(/[^a-z0-9’'\s-]/g,' ').split(/\s+/).filter(function(w){return w&&!STOP[w];});}
 function frag(s){s=s.trim().replace(/\s+/g,' ').replace(/[.!?]+$/,'').toLowerCase();var m=s.match(/\b(?:for|about|of) (.{6,})$/);if(m)s=m[1];var w=s.split(' ');return w.length>9?w.slice(0,9).join(' ')+'…':s;}
-var KINDS=/^(logo|logos|brand|identity|wordmark|mark|film|video|website|site|app|album|song|book|poster|posters|campaign|short|ad|record|music|cover)$/;
 function subject(s){var m=s.toLowerCase().match(/\b(?:for|about|of) (.+)$/);var w=words(m?m[1]:s).filter(function(x){return !KINDS.test(x);});return (w[0]||'kaverne').replace(/[’']s$/,'');}
-function initials(s){var w=words(s).filter(function(x){return /^[a-z]/.test(x)&&!KINDS.test(x);});return w.length>1?w[0][0]+w[w.length-1][0]:(w[0]||'k').slice(0,2);}
-var HUES={red:5,orange:25,amber:38,yellow:52,gold:45,green:125,olive:80,teal:175,cyan:188,blue:215,navy:225,indigo:245,purple:270,violet:265,lilac:280,pink:330,magenta:310,brown:28,rust:18};
+function initials(s){var w=words(s).filter(function(x){return /^[a-z]/.test(x)&&!KINDS.test(x);});return (w.length>1?w[0][0]+w[w.length-1][0]:(w[0]||'k').slice(0,2)).toUpperCase();}
+var HUES={red:5,orange:25,amber:38,yellow:52,gold:45,green:125,olive:80,teal:175,cyan:188,blue:215,navy:225,indigo:245,purple:270,violet:265,lilac:280,pink:330,magenta:310,brown:28,rust:18,warm:24,cool:205};
 function colourWish(s){s=(s||'').toLowerCase();var no=[],yes=[];Object.keys(HUES).forEach(function(c){if(new RegExp('(not|no|never|without|avoid|hate)\\s+(any\\s+)?'+c).test(s))no.push(c);else if(new RegExp('\\b'+c+'\\b').test(s))yes.push(c);});return {no:no,yes:yes};}
-function hsl2rgb(h,s,l){s/=100;l/=100;var k=function(n){return (n+h/30)%12;},a=s*Math.min(l,1-l),f=function(n){return l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));};return [f(0),f(8),f(4)].map(function(x){return Math.round(x*255);});}
-function hex(c){return '#'+c.map(function(x){return x.toString(16).padStart(2,'0');}).join('').toUpperCase();}
+function hsl2hex(h,s,l){s/=100;l/=100;var k=function(n){return (n+h/30)%12;},a=s*Math.min(l,1-l),f=function(n){return l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));};return '#'+[f(0),f(8),f(4)].map(function(x){return Math.round(x*255).toString(16).padStart(2,'0');}).join('').toUpperCase();}
 function near(h,c){return Math.abs(((h-HUES[c])%360+540)%360-180)<28;}
-function palette(seed,wish){var h=hash(seed)%360;if(wish.yes.length)h=(HUES[wish.yes[0]]+200)%360;
-  return [[h,22,12],[h+18,26,30],[wish.yes.length?HUES[wish.yes[0]]:h+165,58,56],[h+8,16,86]].map(function(p){var hh=(p[0]%360+360)%360;for(var g=0;g<12&&wish.no.some(function(c){return near(hh,c);});g++)hh=(hh+31)%360;return hsl2rgb(hh,p[1],p[2]);});}
+function palette(seed,wish){var h=hash(seed)%360,want=wish.yes.length?HUES[wish.yes[0]]:null;
+  /* asked for a colour: the whole palette comes from it. otherwise: dark, mid, an accent across the wheel, a light */
+  return (want!==null?[[want,30,13],[want+8,34,32],[want,62,55],[want-6,22,86]]:[[h,22,12],[h+18,26,30],[h+165,58,56],[h+8,16,86]]).map(function(p){var hh=(p[0]%360+360)%360;for(var g=0;g<12&&wish.no.some(function(c){return near(hh,c);});g++)hh=(hh+31)%360;return hsl2hex(hh,p[1],p[2]);});}
 
-/* ---------- what each kind of work gets ---------- */
+/* ---------- the drafts ---------- */
+var DRAW={
+  marks:function(sub,ini,pick){var a=esc(sub[0].toUpperCase()),w=esc(sub.slice(0,12));
+    var m1='<svg width="88" height="88" viewBox="0 0 88 88"><circle cx="44" cy="44" r="38"/><text x="44" y="57" text-anchor="middle" font-family="Georgia,serif" font-size="38">'+a+'</text></svg>';
+    var m2='<svg width="88" height="88" viewBox="0 0 88 88"><rect x="8" y="8" width="72" height="72"/><rect x="14" y="14" width="60" height="60" stroke-opacity=".4"/><text x="44" y="52" text-anchor="middle" font-family="Helvetica Neue,Arial,sans-serif" font-weight="700" font-size="22" letter-spacing="3">'+esc(ini)+'</text></svg>';
+    var tw=Math.max(80,sub.length*13+12);
+    var m3='<svg width="'+tw+'" height="88" viewBox="0 0 '+tw+' 88"><text x="0" y="50" font-family="Helvetica Neue,Arial,sans-serif" font-size="26" letter-spacing="-.5">'+w+'</text><circle class="f" cx="'+(sub.length*13+6)+'" cy="47" r="3.2"/><line x1="0" y1="62" x2="'+(tw-6)+'" y2="62" stroke-opacity=".5"/></svg>';
+    var all=[m1,m2,m3];if(pick!==undefined)return '<figure>'+all[pick].replace(/width="(\d+)" height="88"/,function(_,w){return 'width="'+Math.round(w*1.8)+'" height="158"';})+'<figcaption>mark '+(pick+1)+', kept</figcaption></figure>';
+    return all.map(function(m,i){return '<figure>'+m+'<figcaption>mark '+(i+1)+'</figcaption></figure>';}).join('');},
+  type:function(sub){var s=esc(sub);return '<figure><span class="spec a">'+s+'</span><span class="spec b">'+s+'</span><span class="spec c">'+s+'</span><figcaption>serif · grotesk · mono</figcaption></figure>';},
+  palette:function(cols){return cols.map(function(c){return '<figure><span class="sw" style="background:'+c+'"></span><figcaption>'+c+'</figcaption></figure>';}).join('');},
+  frames:function(pick){var f=[
+    '<svg width="132" height="76" viewBox="0 0 132 76"><rect x="1" y="1" width="130" height="74"/><line x1="1" y1="46" x2="131" y2="46" stroke-opacity=".6"/><circle class="f" cx="70" cy="56" r="2.6"/><line x1="70" y1="58" x2="70" y2="66"/></svg>',
+    '<svg width="132" height="76" viewBox="0 0 132 76"><rect x="1" y="1" width="130" height="74"/><circle cx="66" cy="30" r="11"/><path d="M42 75 C46 52 86 52 90 75"/></svg>',
+    '<svg width="132" height="76" viewBox="0 0 132 76"><rect x="1" y="1" width="130" height="74"/><rect x="74" y="54" width="44" height="6" class="f"/><circle class="f" cx="22" cy="20" r="3"/></svg>'];
+    var cap=['1 · wide','2 · close','3 · the end'];
+    if(pick!==undefined)return '<figure>'+f[pick].replace('width="132" height="76"','width="250" height="144"')+'<figcaption>frame '+cap[pick]+', kept</figcaption></figure>';
+    return f.map(function(s,i){return '<figure>'+s+'<figcaption>'+cap[i]+'</figcaption></figure>';}).join('');},
+  wave:function(seed){var h=hash(seed),bars='';for(var i=0;i<44;i++){var t=i/43,env=Math.sin(Math.PI*Math.min(1,t*1.3))*(t>.7?1:.5);h=Math.imul(h^(h>>>15),2246822507)>>>0;var v=Math.max(.06,env*(.55+(h%100)/220));bars+='<rect class="f" x="'+(i*6)+'" y="'+(60-56*v).toFixed(1)+'" width="3.4" height="'+(56*v).toFixed(1)+'"/>';}
+    return '<figure><svg width="264" height="62" viewBox="0 0 264 62">'+bars+'</svg><figcaption>quiet, then not</figcaption></figure>';},
+  page:function(sub){return '<figure><svg width="220" height="140" viewBox="0 0 220 140"><rect x="1" y="1" width="218" height="138"/><text x="14" y="24" font-family="Helvetica Neue,Arial,sans-serif" font-size="12" font-weight="700">'+esc(sub.slice(0,14))+'</text><line x1="150" y1="20" x2="205" y2="20" stroke-dasharray="10 6"/><rect class="f" x="14" y="46" width="130" height="18"/><line x1="14" y1="78" x2="110" y2="78" stroke-opacity=".6"/><line x1="14" y1="88" x2="96" y2="88" stroke-opacity=".6"/><rect x="14" y="104" width="56" height="18"/><text x="42" y="117" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9">start</text></svg><figcaption>the first screen</figcaption></figure>';}
+};
+
+/* ---------- what each kind of project gets ---------- */
 var DOMAINS=[
- {id:'logo',k:/logo|brand|identity|mark|wordmark/i,crew:['logo','type','colour','design','review'],
-  first:function(f){return [['logo','→ type: “'+f+'”. sketching marks. forty, then one.'],['type','→ colour: it’s going to want a typeface before it wants a colour.']];},ask:['colour','→ you: is there a colour it can’t be?'],
-  show:[['logo','→ you: three marks. on the wall.','marks'],['type','→ you: “{s}”, two ways. on the wall.','type']],
-  job:{role:'logo',t:'{s}: mark {n} of {max}.',a:' most are too clever.',max:40,done:'{s}: forty marks. one stays.'},
-  after:['logo','→ review: mark 3 holds at 16 pixels. 1 doesn’t.','type','→ logo: the counter in the a is closing up small. opening it.','colour','→ logo: tried the mark in one colour. it’s stronger.','review','→ logo: 2 is clever. that’s the problem with it.','design','→ logo: clear space is the height of the x.']},
- {id:'film',k:/film|video|\bad\b|commercial|trailer|short|documentary|spot|reel/i,crew:['boards','gen','cut','sound','colour','review'],
+ {id:'logo',k:/logo|brand|identity|wordmark|\bmark\b/i,noun:'logo',
+  first:function(f){return [['logo','→ type: “'+f+'”. sketching marks.'],['type','→ colour: it’ll want a typeface before a colour.']];},ask:['colour','→ you: is there a colour it can’t be?'],
+  work:[['logo','→ you: three first marks.','marks'],['type','→ you: the name, three ways.','type'],['colour','→ you: a first palette.','palette']],
+  job:{role:'logo',unit:'mark',max:40,pick:'marks'},keep:'→ you: forty marks. this is the one we’d keep.',
+  notes:[['review','→ logo: 2 is clever. that’s the problem with it.'],['type','→ logo: opening up the counter in the a.'],['logo','→ review: the circle holds at 16 pixels.']]},
+ {id:'film',k:/film|video|\bad\b|commercial|trailer|short|documentary|spot|reel/i,noun:'film',
   first:function(f){return [['boards','→ cut: “'+f+'”. first frames by morning.'],['sound','→ boards: what does it sound like with the picture off?']];},ask:['cut','→ you: how long does it get to be?'],
-  show:[['boards','→ you: three frames. on the wall. 2 is the one.','frames']],
-  job:{role:'boards',t:'{s}: frame {n} of {max}.',a:' the light keeps changing.',max:24,done:'{s}: 24 frames. the film is in six of them.'},
-  after:['cut','→ boards: frame 2 is the film. the others are setting it up.','gen','→ cut: twelve takes of frame 2. the light only behaves in three.','sound','→ cut: room tone under the end. the silence was too clean.','colour','→ cut: matching the close-up to the wide on the skin, not the sky.','review','→ everyone: shorter. it’s always shorter.']},
- {id:'music',k:/song|album|music|track|record|band|\bep\b|single|score/i,crew:['score','sound','design','colour','review'],
-  first:function(f){return [['score','→ sound: “'+f+'”. listening first. no notes yet.'],['design','→ score: the cover has to work at the size of a thumbnail.']];},ask:['score','→ you: what should it feel like at the end?'],
-  show:[['score','→ you: the shape of it, before any notes. on the wall.','wave'],['design','→ you: the cover, roughly. on the wall.','type']],
-  job:{role:'score',t:'{s}: bar {n} of {max}.',a:' the quiet part is the hard part.',max:64,done:'{s}: 64 bars. the quiet part is the song.'},
-  after:['score','→ sound: down a semitone. it sat too bright.','sound','→ score: the kick and the bass fight at 60 hz. carving the bass.','design','→ colour: the cover reads from across a room now.','review','→ score: took the drums out of verse two. it breathes.']},
- {id:'words',k:/book|novel|script|story|poem|essay|copy|writing|newsletter|zine/i,crew:['words','type','design','review'],
-  first:function(f){return [['words','→ review: “'+f+'”. reading it aloud before touching it.'],['type','→ words: a page that size wants about sixty characters a line.']];},ask:['words','→ you: who is it for? one person is enough.'],
-  show:[['type','→ you: “{s}”, set two ways. on the wall.','type']],
-  job:{role:'words',t:'{s}: draft {n} of {max}.',a:' the first line keeps surviving.',max:9,done:'{s}: nine drafts. the first line survived all of them.'},
-  after:['words','→ review: cut every “very”. nothing got weaker.','type','→ words: a widow on page two. one word cut, gone.','words','→ type: the title wants to break after the second word.','review','→ words: say the thing you’re scared to say.']},
- {id:'site',k:/site|website|\bapp\b|web|page|product|launch|platform/i,crew:['design','words','type','colour','review'],
-  first:function(f){return [['design','→ words: “'+f+'”. one idea per screen. which one goes first?'],['words','→ design: the button can’t say “submit”.']];},ask:['design','→ you: what should someone do in the first ten seconds?'],
-  show:[['design','→ you: the first screen. on the wall.','screen'],['type','→ you: “{s}”, two ways. on the wall.','type']],
-  job:{role:'design',t:'{s}: screen {n} of {max}.',a:' the first one is doing all the work.',max:12,done:'{s}: twelve screens. the first one does the work.'},
-  after:['design','→ review: moved everything four pixels. you’d have felt it.','colour','→ design: the link colour passes 4.5:1 now.','words','→ design: the headline was nine words. it’s four.','type','→ design: the measure was ninety characters. sixty now.']},
- {id:'print',k:/poster|print|packaging|label|magazine|flyer|card/i,crew:['design','colour','type','review'],
-  first:function(f){return [['design','→ colour: “'+f+'”. paper first, then everything else.'],['colour','→ design: the screen is rgb. the paper isn’t. noted early.']];},ask:['design','→ you: where will people see it?'],
-  show:[['type','→ you: “{s}”, big. on the wall.','type']],
-  job:{role:'design',t:'{s}: proof {n} of {max}.',a:' the paper keeps winning.',max:8,done:'{s}: eight proofs. the paper won.'},
-  after:['colour','→ design: rich black, 60/40/40/100. the plain black proofed grey.','design','→ type: 3 mm bleed. the photo stopped a millimetre short.','type','→ design: that hairline won’t survive uncoated stock.','review','→ design: the white space is doing the work. leave it.']}
+  work:[['boards','→ you: three first frames.','frames'],['colour','→ you: a first palette.','palette']],
+  job:{role:'boards',unit:'frame',max:24,pick:'frames'},keep:'→ you: twenty-four frames. this is the film.',
+  notes:[['cut','→ boards: frame 2 is the film. the others set it up.'],['sound','→ cut: room tone under the end.'],['review','→ everyone: shorter. it’s always shorter.']]},
+ {id:'music',k:/song|album|music|track|record|band|\bep\b|single/i,noun:'record',
+  first:function(f){return [['score','→ sound: “'+f+'”. listening first.'],['design','→ score: the cover has to work as a thumbnail.']];},ask:['score','→ you: what should it feel like at the end?'],
+  work:[['score','→ you: the shape of it, before any notes.','wave'],['design','→ you: the title, three ways.','type'],['colour','→ you: colours for the cover.','palette']],
+  job:{role:'score',unit:'bar',max:64},keep:'→ you: sixty-four bars. the quiet part is the song.',
+  notes:[['score','→ sound: down a semitone. it sat too bright.'],['design','→ colour: the cover reads from across a room now.'],['review','→ score: took the drums out of verse two.']]},
+ {id:'site',k:/site|website|\bapp\b|web|page|product|platform/i,noun:'site',
+  first:function(f){return [['design','→ words: “'+f+'”. one idea per screen.'],['words','→ design: the button can’t say “submit”.']];},ask:['design','→ you: what should someone do in the first ten seconds?'],
+  work:[['design','→ you: the first screen.','page'],['type','→ you: the name, three ways.','type'],['colour','→ you: a first palette.','palette']],
+  job:{role:'design',unit:'screen',max:12},keep:'→ you: twelve screens. the first one does the work.',
+  notes:[['words','→ design: the headline was nine words. it’s four.'],['colour','→ design: the link colour passes contrast now.'],['review','→ design: moved everything four pixels. you’d have felt it.']]},
+ {id:'print',k:/poster|print|packaging|label|magazine|flyer|card|book|zine/i,noun:'poster',
+  first:function(f){return [['design','→ colour: “'+f+'”. paper first, then everything else.'],['colour','→ design: the screen is rgb. the paper isn’t.']];},ask:['design','→ you: where will people see it?'],
+  work:[['type','→ you: the headline, three ways.','type'],['colour','→ you: a first palette.','palette']],
+  job:{role:'design',unit:'proof',max:8},keep:'→ you: eight proofs. the paper won.',
+  notes:[['colour','→ design: rich black, so it doesn’t print grey.'],['type','→ design: that hairline won’t survive the paper.'],['review','→ design: the white space is doing the work.']]}
 ];
-var DEFAULT={id:'any',crew:['look','boards','words','colour','review'],
-  first:function(f){return [['look','→ boards: “'+f+'”. forty directions. most will be bad. that’s the point.'],['words','→ look: say it in one sentence first.']];},ask:['review','→ you: what would make you say “that’s it”?'],
-  show:[['boards','→ you: three directions. on the wall.','frames']],
-  job:{role:'look',t:'{s}: direction {n} of {max}.',a:' one of them is strange.',max:40,done:'{s}: forty directions. the strange one is still here.'},
-  after:['look','→ review: six directions. one is strange. keeping it.','boards','→ look: frame 3 has the light.','colour','→ look: warm highlights, cool shadows.','review','→ everyone: the safe one is in the folder. so is the one we’d make.']};
-function domainById(id){return DOMAINS.filter(function(d){return d.id===id;})[0]||DEFAULT;}
-
-/* ---------- the project: answers, the work on the wall, the long job ---------- */
-var ANSWERS=[],D=null,SUBJ='',TINT=null,WORK=[],P0=0,jobSeen=false,jobDone=false,noteI=0;
-function buildWork(){var sub=SUBJ,ini=initials(ANSWERS[0]||sub),out=[];
-  D.show.forEach(function(s){var k=s[2];
-    if(k==='marks'){out.push(function(){return WALL.mark(sub[0]);},function(){return WALL.mono(ini);},function(){return WALL.serif(sub);});}
-    if(k==='type'){out.push(function(){return WALL.word(sub);},function(){return WALL.serif(sub);});}
-    if(k==='frames'){out.push(function(){return WALL.frame(0);},function(){return WALL.frame(1);},function(){return WALL.frame(2);});}
-    if(k==='wave'){out.push(function(){return WALL.wave(ANSWERS.join(' '));});}
-    if(k==='screen'){out.push(function(){return WALL.screen();});}});
-  WORK=out;}
-function jobProgress(){return P0?Math.min(1,(Date.now()-P0)/(RM?120000:360000)):0;}
-function jobLine(){var j=D.job,n=Math.max(1,Math.min(j.max,Math.ceil(jobProgress()*j.max)));
-  if(n>=j.max){jobDone=true;return j.done.replace('{s}',SUBJ);}
-  var t=j.t.replace('{s}',SUBJ).replace('{n}',n).replace('{max}',j.max)+(jobSeen?'':j.a);jobSeen=true;return t;}
-var DRIFT=['something like a {s} on the far wall. there’s no {s}.','the drip sounds like someone saying “{s}”.','for a moment the wall looks like your {k}.','a shape, high up on the left. it might be ours.','the water sounds like a room full of people agreeing.'];
-function driftLine(){var kind={logo:'logo',film:'film',music:'record',words:'book',site:'site',print:'poster',any:'idea'}[D.id];return rnd(DRIFT).replace(/\{s\}/g,SUBJ).replace('{k}',kind);}
-
-/* ---------- memory: only in this browser ---------- */
-function recall(){try{var m=JSON.parse(localStorage.getItem(KEY)||'null');if(m&&m.a&&Date.now()-m.t<7*864e5)return m;}catch(e){}return null;}
-function remember(){try{localStorage.setItem(KEY,JSON.stringify({a:ANSWERS,d:D.id,t:Date.now(),p0:P0}));}catch(e){}showForget();}
-function showForget(){mem.innerHTML=recall()?' · <button class="forget" id="fg">forget me</button>':'';var b=$('fg');if(b)b.onclick=function(){try{localStorage.removeItem(KEY);}catch(e){}mem.textContent=' · forgotten.';};}
+var DEFAULT={id:'any',noun:'idea',
+  first:function(f){return [['look','→ boards: “'+f+'”. forty directions. most will be bad.'],['words','→ look: say it in one sentence first.']];},ask:['review','→ you: what would make you say “that’s it”?'],
+  work:[['boards','→ you: three first directions.','frames'],['colour','→ you: a first palette.','palette']],
+  job:{role:'look',unit:'direction',max:40,pick:'frames'},keep:'→ you: forty directions. this one stayed.',
+  notes:[['look','→ review: one direction is strange. keeping it.'],['colour','→ look: warm highlights, cool shadows.'],['review','→ everyone: the safe one is in the folder too.']]};
 
 /* ---------- the conversation ---------- */
-async function say(cls,who,text,cps){if(who.indexOf('kaverne/')===0)lit(who.slice(8));var x=row(cls,local(TZ).s,who);await type(x,text,cps||18);await wait(500+Math.random()*700);}
+var ANSWERS=[],D=null,SUB='',PAL=null;
 function prompt(ph){slot.innerHTML='';var i=document.createElement('input');i.id='in';i.maxLength=200;i.placeholder=ph;i.setAttribute('aria-label',ph);slot.appendChild(i);line.classList.remove('off');i.focus({preventScroll:true});}
+async function draw(kind){
+  if(kind==='marks')await show(DRAW.marks(SUB,initials(ANSWERS[0])));
+  if(kind==='type')await show(DRAW.type(SUB));
+  if(kind==='palette')await show(DRAW.palette(PAL));
+  if(kind==='frames')await show(DRAW.frames());
+  if(kind==='wave')await show(DRAW.wave(ANSWERS.join(' ')));
+  if(kind==='page')await show(DRAW.page(SUB));}
 
 async function connect(){
-  connected=true;connectedAt=Date.now();busy=true;line.classList.add('off');
+  connected=true;busy=true;line.classList.add('off');
   [].forEach.call(feed.querySelectorAll('.row'),function(r){r.classList.add('world');});
-  var nt=isNight(local(TZ).h);PEOPLE=nt?0:2+((Math.random()*2)|0);
-  var awake=CREW.slice(0,nt?8+((Math.random()*5)|0):3+((Math.random()*3)|0));if(awake.indexOf('review')<0)awake.push('review');
-  AWAKE=awake.length;drawCrew(awake);crewEl.classList.add('on');pinY.classList.add('on');labY.classList.add('on');drawBand();
-  await say('you','you','connect kaverne',30);
-  await say('sys','kaverne','opening a line into the cave.',22);
-  await say('sys','kaverne','it’s '+local(TZ).s+' in los angeles. '+AWAKE+' agents awake, '+PEOPLE+(PEOPLE===1?' person.':' people.'),22);
-  if(D){/* back again: pick it up where it is */
-    await say('ours','kaverne/review','→ you: still on “'+frag(ANSWERS[0])+'”. it’s further along.',15);
-    await say('job','kaverne/'+D.job.role,jobLine(),18);
-    if(WORK.length)spawn(rnd(WORK)(),ANSWERS.join(' '),TINT);
-    busy=false;prompt('say more, or just watch');work();return;}
+  var h=local(TZ).h,night=(h>=22||h<6),agents=night?6+((Math.random()*5)|0):3+((Math.random()*3)|0);
+  await say('you','you','connect',30);
+  await say('sys','kaverne','it’s '+local(TZ).s+' in los angeles. '+agents+' agents are awake.',22);
   await say('ours','kaverne/review','→ you: what are you making?',15);
-  busy=false;prompt('a sentence is plenty');
-}
+  busy=false;prompt('a logo, a film, a song, a site… a sentence is plenty');}
+
 async function answer(text){
   busy=true;line.classList.add('off');
   await say('you','you',text,60);
-  if(ANSWERS.length>=2){/* anything after the work goes to the crew */
-    if(text){ANSWERS.push(text);var r=rnd(D.crew.filter(function(x){return x!=='review';}));
-      await say('ours','kaverne/review','→ '+r+': “'+frag(text)+'”. yours.',15);
-      await say('ours','kaverne/'+r,rnd(['→ you: on it.','→ you: noted. trying it both ways.','→ you: good. that changes the first one.','→ you: yes. it was missing that.']),16);
-      remember();}
-    busy=false;prompt('say more, or just watch');return;}
+  if(ANSWERS.length>=2){await later(text);busy=false;prompt('tell them more, or just watch');return;}
   ANSWERS.push(text);
   if(ANSWERS.length===1){
-    D=DOMAINS.filter(function(d){return d.k.test(text);})[0]||DEFAULT;SUBJ=subject(text);
-    var awake=D.crew.slice(0,Math.max(3,AWAKE));drawCrew(awake.concat(CREW.filter(function(r){return awake.indexOf(r)<0;})).slice(0,Math.max(awake.length,AWAKE)));
-    var ls=D.first(frag(text));for(var i=0;i<ls.length;i++)await say('ours','kaverne/'+ls[i][0],ls[i][1],15);
-    await say('ours','kaverne/'+D.ask[0],D.ask[1],15);
-    busy=false;prompt('answer, or skip with enter');return;}
-  /* second answer: the colours, then the work appears on the wall */
-  var wish=colourWish(text),pal=palette(ANSWERS.join(' '),wish);TINT=pal[2];
-  if(text)await say('ours','kaverne/review','→ everyone: noted: “'+frag(text)+'”.',15);
-  await say('sys','kaverne','an hour passes, roughly.',26);
-  await say('ours','kaverne/colour','→ you: four colours. '+pal.map(hex).join(' ')+'.'+(wish.no.length?' no '+wish.no.join(', no ')+'. checked.':wish.yes.length?' built around the '+wish.yes[0]+'.':''),16);
-  buildWork();var wi=0;
-  for(var s=0;s<D.show.length;s++){var sh=D.show[s],n=sh[2]==='marks'||sh[2]==='frames'?3:sh[2]==='type'?2:1;
-    await say('ours','kaverne/'+sh[0],sh[1].replace('{s}',SUBJ),16);
-    for(var q=0;q<n&&wi<WORK.length;q++,wi++){spawn(WORK[wi](),ANSWERS.join(' '),TINT);await wait(1400);}}
-  await say('ours','kaverne/review','→ you: rough, on purpose. press . to see it again. we’ll keep going.',15);
-  P0=Date.now();remember();
-  busy=false;prompt('say more, or just watch');work();
-}
-/* the night goes on: your project comes back as a long job, with notes in between */
-var working=false;
-function work(){if(working)return;working=true;var k=0;
-  (async function loop(){for(;;){await wait(RM?7000:14000+Math.random()*10000);
-    if(document.hidden||busy)continue;busy=true;
-    if(!jobDone&&(k%2===0||noteI*2>=D.after.length)){await say('job','kaverne/'+D.job.role,jobLine(),18);if(jobDone&&WORK.length)spawn(WORK[0](),ANSWERS.join(' '),TINT);}
-    else if(noteI*2<D.after.length){var i=noteI*2;noteI++;await say('ours','kaverne/'+D.after[i],D.after[i+1],16);}
-    else{await say('sys','kaverne','the line stays open. they’ll keep going without you.',22);busy=false;working=false;return;}
-    k++;busy=false;remember();}})();}
+    D=DOMAINS.filter(function(d){return d.k.test(text);})[0]||DEFAULT;SUB=subject(text);
+    var ls=D.first(frag(text));for(var i=0;i<ls.length;i++)await say('ours','kaverne/'+ls[i][0],ls[i][1],16);
+    await say('ours','kaverne/'+D.ask[0],D.ask[1],16);
+    busy=false;prompt('answer, or press enter to skip');return;}
+  /* second answer: they show you first drafts */
+  var wish=colourWish(ANSWERS.join(' '));PAL=palette(ANSWERS.join(' '),wish);
+  if(text)await say('ours','kaverne/review','→ everyone: noted: “'+frag(text)+'”.',16);
+  await say('sys','kaverne','they work on it for a while.',24);
+  for(var w=0;w<D.work.length;w++){var it=D.work[w],note=it[1];
+    if(it[2]==='palette'&&wish.no.length)note+=' no '+wish.no.join(', no ')+'.';
+    if(it[2]==='palette'&&wish.yes.length)note+=' built around '+wish.yes[0]+'.';
+    await say('ours','kaverne/'+it[0],note,17);await draw(it[2]);}
+  await say('ours','kaverne/review','→ you: first drafts. rough on purpose. they’ll keep going.',16);
+  busy=false;prompt('tell them more, or just watch');progress();}
+
+/* anything you add after the drafts: colours get a new palette; everything else goes to someone on the crew */
+async function later(text){if(!text)return;ANSWERS.push(text);var wish=colourWish(text);
+  if(wish.yes.length||wish.no.length){PAL=palette(ANSWERS.join(' '),colourWish(ANSWERS.join(' ')));
+    await say('ours','kaverne/colour','→ you: '+(wish.yes.length?'more '+wish.yes[0]+'. ':'')+(wish.no.length?'no '+wish.no.join(', no ')+'. ':'')+'here’s the palette again.',17);await draw('palette');return;}
+  var r=rnd(D.work)[0];await say('ours','kaverne/'+r,rnd(['→ you: noted. trying it both ways.','→ you: good. that changes the first draft.','→ you: yes. it was missing that.','→ you: on it.']),17);}
+
+/* while you watch: the job counts up, with a few notes, then the one they'd keep */
+async function progress(){var j=D.job,steps=[0.15,0.3,0.48,0.66,0.84],ni=0;
+  for(var s=0;s<steps.length;s++){await wait(RM?6000:13000+Math.random()*7000);while(busy)await wait(800);busy=true;
+    var n=Math.max(2,Math.round(j.max*steps[s]));
+    await say('job','kaverne/'+j.role,SUB+' '+D.noun+': '+j.unit+' '+n+' of '+j.max+'.',18);
+    if(s%2===1&&ni<D.notes.length){var nt=D.notes[ni++];await say('ours','kaverne/'+nt[0],nt[1],17);}
+    busy=false;}
+  await wait(RM?5000:12000);while(busy)await wait(800);busy=true;
+  await say('ours','kaverne/'+j.role,D.keep,15);
+  if(j.pick==='marks')await show(DRAW.marks(SUB,initials(ANSWERS[0]),2),true);
+  else if(j.pick==='frames')await show(DRAW.frames(1),true);
+  await say('sys','kaverne','that’s the first pass. the line stays open.',22);
+  busy=false;}
 
 $('go').addEventListener('click',connect);
 line.addEventListener('submit',function(e){e.preventDefault();var i=$('in');if(!i||busy)return;var v=i.value.trim();if(!v&&ANSWERS.length===0)return;i.value='';answer(v);});
-document.addEventListener('keydown',function(e){
-  if(!connected&&e.key==='Enter'&&!e.metaKey){e.preventDefault();connect();return;}
-  /* . brings your work back to the wall; before that, it pulls a word from the stream */
-  var typing=document.activeElement&&document.activeElement.tagName==='INPUT'&&document.activeElement.value!=='';
-  if(e.key==='.'&&!e.metaKey&&!e.ctrlKey&&!typing){if(document.activeElement&&document.activeElement.tagName==='INPUT')e.preventDefault();
-    if(WORK.length)spawn(rnd(WORK)(),ANSWERS.join(' '),TINT);
-    else{var rows=feed.querySelectorAll('.row .x');if(rows.length){var t=rows[rows.length-1-((Math.random()*Math.min(4,rows.length))|0)].textContent,w=t.split(/\s+/).filter(function(x){return x.length>4;});if(w.length)spawn(WALL.word(rnd(w).replace(/[^a-z]/gi,'')),t);}}}
-});
+document.addEventListener('keydown',function(e){if(!connected&&e.key==='Enter'&&!e.metaKey){e.preventDefault();connect();}});
 
-/* ---------- open mid-night; if you've been here, they say so ---------- */
-(function seed(){for(var k=0;k<6;k++){var c=rnd(dark().length?dark():CITIES);row('',local(c[1]).s,c[0]).textContent=night();}
-  var m=recall();showForget();
-  if(m){ANSWERS=m.a;D=domainById(m.d);SUBJ=subject(ANSWERS[0]);P0=m.p0||m.t;jobSeen=true;var pal=palette(ANSWERS.slice(0,2).join(' '),colourWish(ANSWERS[1]||''));TINT=pal[2];buildWork();
-    var x=row('ours',local(TZ).s,'kaverne/review'),pc=Math.round(jobProgress()*100);
-    x.textContent='→ you: welcome back. “'+frag(ANSWERS[0])+'” is '+(pc>=100?'done for tonight.':pc+'% along.');
-    $('go').textContent='› pick the line back up';setTimeout(function(){if(WORK.length)spawn(rnd(WORK)(),ANSWERS.join(' '),TINT);},2500);}
-  tick();setInterval(tick,1000);
-})();
-world();
+/* open mid-night, then say what this is */
+(async function seed(){for(var k=0;k<5;k++){var c=rnd(dark().length?dark():CITIES);row('',local(c[1]).s,c[0]).textContent=night();}
+  busy=true;await wait(900);await say('intro','kaverne','tell the night shift what you’re making. a few agents will start on it while you watch.',30);busy=false;world();})();
 })();
 </script>

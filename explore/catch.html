@@ -88,7 +88,7 @@ body{margin:0;background:var(--bg);color:var(--text);font:400 var(--fs)/var(--lh
 </style>
 
 <main class="scr">
-  <canvas class="glow" id="glow" aria-hidden="true"></canvas>
+  <canvas class="glow" id="glow" aria-hidden="true" hidden></canvas>
   <canvas class="threads" id="threads" aria-hidden="true"></canvas>
   <div class="top"><span class="mark">kaverne &nbsp;&middot;&nbsp; night shift<span class="what">an agentic creative studio. people by day, agents by night.</span><span class="tally" id="tally"></span></span><span class="count" id="count"></span></div>
   <div class="feed" id="feed" role="log" aria-live="off" aria-label="things happening tonight, wherever it is night"></div>
@@ -464,7 +464,7 @@ var MAKE={
 };
 var KEYS=[[/crab/,'crab'],[/cactus/,'cactus'],[/telescope/,'telescope'],[/church bell|\bbell/,'bell'],[/clock/,'clock'],[/lamp|bulb/,'bulb'],[/runs out|timer/,'hourglass'],[/lightning/,'lightning'],[/mountain/,'mountain'],[/hand by hand/,'hand'],[/\bhand/,'hands'],[/race|jockey/,'rider'],[/horse|gallop/,'horse'],[/peace|dove/,'dove'],[/owl/,'owl'],[/moth|butterfl/,'moth'],[/whale/,'whale'],[/octopus/,'octopus'],[/fish/,'fish'],[/\bdog/,'dog'],[/\bcat\b|cat flap/,'cat'],[/rabbit/,'rabbit'],[/deer/,'deer'],[/snail/,'snail'],[/\bbat\b/,'bat'],[/spider|crawler/,'spider'],[/crab/,'crab'],[/turtle/,'turtle'],[/elephant/,'elephant'],[/desert|camel/,'camel'],[/rooster/,'rooster'],[/swan/,'swan'],[/flamingo/,'flamingo'],[/parrot/,'parrot'],[/rose/,'rose'],[/tree|forest/,'tree'],[/palm/,'palm'],[/mushroom/,'mushroom'],[/cactus/,'cactus'],[/moon|tide/,'moon'],[/planet|observatory/,'planet'],[/satellite/,'satellite'],[/rocket|launch/,'rocket'],[/telescope/,'telescope'],[/letter|written|writes/,'writing'],[/hearing/,'ear'],[/step counter|steps/,'footprints'],[/\bkey\b/,'key'],[/lock/,'lock'],[/clock/,'clock'],[/runs out|timer/,'hourglass'],[/bell/,'bell'],[/lamp|bulb/,'bulb'],[/train|timetable/,'train'],[/sailboat|sail/,'sailboat'],[/anchor/,'anchor'],[/umbrella|rain\b/,'umbrella'],[/bicycle|bike/,'bicycle'],[/guitar/,'guitar'],[/violin|orchestra/,'violin'],[/playlist|headphone|listen/,'headphones'],[/\bcut\b|scissors/,'scissors'],[/\btea\b|coffee|cup/,'teacup'],[/wine|vineyard/,'wine'],[/chair|seats/,'chair'],[/wave|buoy/,'wave'],[/snow/,'snowflake'],[/cloud/,'cloud'],[/lightning/,'lightning'],[/\bstar/,'star'],[/comet/,'comet'],[/pedestrian|walk/,'walker'],[/marathon|running|run\b/,'runner'],[/dance/,'dancer'],[/tower/,'tower'],[/mountain/,'mountain'],[/bird/,'bird'],[/hand/,'hands'],[/camera|photo|frame|lens|subtitle|film/,'camera'],[/someone|somebody|person|keeper|nobody|kid/,'someone'],[/watch|seen|look|eye/,'eye']];
 var SKIPW={there:1,their:1,which:1,about:1,again:1,still:1,until:1,always:1,doesn:1,nobody:1,something:1,someone:1,somebody:1,anyone:1,thousand:1};
-function spawn(text,force){
+function spawn(text,force){return;
   var now=performance.now();if(V.length>=(force?4:2)||(!force&&now-lastV<7000)||!GW)return;
   var low=text.toLowerCase(),kind=null;for(var i=0;i<KEYS.length;i++)if(KEYS[i][0].test(low)){kind=KEYS[i][1];break;}
   var m;
@@ -486,7 +486,7 @@ function spawn(text,force){
 function scaled(m,k){var c=Math.max(4,Math.round(m.c*k)),r=Math.max(3,Math.round(m.r*k));return {c:c,r:r,v:function(x,y){var fx=x/k,fy=y/k,x0=Math.min(m.c-1,Math.floor(fx)),y0=Math.min(m.r-1,Math.floor(fy)),x1=Math.min(m.c-1,x0+1),y1=Math.min(m.r-1,y0+1),tx=fx-x0,ty=fy-y0;
   return (m.v(x0,y0)*(1-tx)+m.v(x1,y0)*tx)*(1-ty)+(m.v(x0,y1)*(1-tx)+m.v(x1,y1)*tx)*ty;}};}
 function hash2(x,y){var h=Math.sin(x*127.1+y*311.7)*43758.5453;return h-Math.floor(h);}
-function drawGlow(now){
+function drawGlow(now){return;
   gx.clearRect(0,0,GW,GH);
   if(V.length){
     gx.font=GFS+'px "JetBrains Mono", ui-monospace, monospace';gx.textBaseline='top';

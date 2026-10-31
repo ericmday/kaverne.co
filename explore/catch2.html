@@ -1,0 +1,736 @@
+<!doctype html>
+<title>Kaverne · catch lab 2</title>
+<meta name="robots" content="noindex">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<meta property="og:title" content="Kaverne">
+<meta property="og:description" content="An agentic creative studio. Somewhere it is always night. Machines are up doing the work. One of them is ours.">
+<meta name="description" content="Kaverne is an agentic creative studio. Somewhere it is always night, and machines are up doing the work. Kaverne's is one of them.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kaverne.co/">
+<meta property="og:site_name" content="Kaverne">
+<meta property="og:image" content="https://kaverne.co/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Kaverne mark: a cave mouth open to light, reflected on dark water.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://kaverne.co/og.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* the early terminal, as a live tail: the stream rises from the bottom, the planet's night is one line under it */
+:root{
+  color-scheme:dark;
+  --bg:#0A0A0A; --text:#B8B8B8; --hi:#E6E6E6; --chrome:#5E5E5E; --faint:#3A3A3A; --ember:#E07A34;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --fs:clamp(12.5px,1.12vw,18px); --lh:1.7;
+  --m:clamp(20px,8vw,120px);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--text);font:400 var(--fs)/var(--lh) var(--mono);-webkit-text-size-adjust:100%;font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0;overflow:hidden}
+.sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.scr{position:relative;height:100%;min-height:440px;overflow:hidden}
+.top,.bot{position:absolute;left:var(--m);right:var(--m);display:flex;justify-content:space-between;gap:16px;font-size:.78em;line-height:1.4}
+.top{top:calc(var(--m) * .55)}
+.bot{bottom:calc(var(--m) * .55)}
+.mark{color:var(--chrome)}
+.top .mark{white-space:nowrap}
+.mail{color:var(--chrome);text-decoration:none;white-space:nowrap;transition:color .4s}
+.mail:hover,.mail:focus-visible{color:var(--hi)}
+.count{color:var(--faint);font-variant-numeric:tabular-nums;text-align:right}
+.what{display:block;color:var(--text);margin-top:.5em;white-space:normal}
+.tally{display:block;color:var(--faint);font-variant-numeric:tabular-nums;margin-top:.5em}
+
+/* the stream: newest at the bottom, older lines dim as they rise */
+.feed{position:absolute;left:var(--m);right:var(--m);top:calc(var(--m) * 1.4);bottom:calc(var(--m) * .55 + 5.2em);overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 38%);mask-image:linear-gradient(to bottom,transparent 0,#000 38%)}
+.row{display:grid;grid-template-columns:6ch 14ch minmax(0,1fr);column-gap:2ch;white-space:pre-wrap;transition:color 1.2s,opacity 2.4s ease-out}
+.row .t{color:var(--chrome);font-variant-numeric:tabular-nums}
+.row .c{color:var(--chrome);overflow:hidden;text-overflow:clip;white-space:nowrap}
+.row.ours .c,.row.ours .x{color:var(--hi)}
+.row.edge .x{color:var(--chrome)}
+.row.note{grid-template-columns:minmax(0,1fr)}
+.row.note .x{color:var(--chrome)}
+.cur{display:inline-block;width:.6em;height:1.1em;vertical-align:-.2em;background:var(--chrome);margin-left:1px;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* one line of planet: where it is night right now */
+.band{position:absolute;left:var(--m);right:var(--m);bottom:calc(var(--m) * .55 + 2.2em);height:1.6em}
+.band .cells{position:absolute;left:0;right:0;top:0;height:3px;display:flex;gap:2px}
+.band .cells i{flex:1 1 0;background:var(--faint);opacity:.35;transition:opacity 4s,background 4s}
+.band .cells i.n{background:var(--text);opacity:.55}
+.threads{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.labp{position:absolute;left:var(--m);right:var(--m);top:calc(var(--m) * .3);font-size:.72em;line-height:1.5;color:var(--chrome);display:flex;flex-direction:column;gap:.2em;padding-bottom:.6em;border-bottom:1px solid #1c1c1c}
+.labp a{color:var(--chrome);text-decoration:none;white-space:nowrap}
+.labp a.on{color:var(--ember)}
+.labp a:hover{color:var(--hi)}
+.labd{color:var(--text)}
+.labp .labn{display:flex;flex-wrap:wrap;gap:0 1.6ch}
+.top{top:calc(var(--m) * .55 + 4.6em)!important}
+.feed{top:calc(var(--m) * 1.4 + 4.6em)!important}
+.band .pin{position:absolute;top:-6px;width:1px;height:15px;background:var(--ember)}
+.band .lab{position:absolute;top:14px;font-size:.72em;color:var(--chrome);transform:translateX(-50%);white-space:nowrap;font-variant-numeric:tabular-nums}
+.band .lab b{font-weight:400;color:var(--hi)}
+
+/* prisoner’s cinema: faint shapes made from the stream’s own letters, flickering like firelight */
+.glow{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.row.drift .x{color:var(--text);font-style:italic}
+.row.drift .c{color:var(--faint)}
+@media (max-width:640px){.row{grid-template-columns:5ch 9ch minmax(0,1fr);column-gap:1.4ch}.row .c .r{display:block}.here{display:none}.band{bottom:calc(var(--m) * .55 + 4.4em)}.feed{bottom:calc(var(--m) * .55 + 7.6em)}}
+@media (prefers-reduced-motion:reduce){.cur{animation:none}}
+</style>
+
+<main class="scr">
+  <canvas class="glow" id="glow" aria-hidden="true" hidden></canvas>
+  <canvas class="threads" id="threads" aria-hidden="true"></canvas>
+  <div class="top"><span class="mark">kaverne &nbsp;&middot;&nbsp; night shift<span class="what">an agentic creative studio. people by day, agents by night.</span><span class="tally" id="tally"></span></span><span class="count" id="count"></span></div>
+  <div class="feed" id="feed" role="log" aria-live="off" aria-label="things happening tonight, wherever it is night"></div>
+  <div class="band" id="band" aria-hidden="true"><div class="cells" id="cells"></div></div>
+  <div class="bot"><span class="mark">we only know the time by what reaches us from the surface.</span><a class="mail" href="mailto:hello@kaverne.co">hello@kaverne.co</a></div>
+  <p class="sr" id="sr" aria-live="polite"></p>
+  <div class="labp" id="labp"></div>
+</main>
+
+<script>
+(function(){
+'use strict';
+var CITIES=[
+ ['honolulu','Pacific/Honolulu',-158],['anchorage','America/Anchorage',-150],['vancouver','America/Vancouver',-123],['los angeles','America/Los_Angeles',-118],
+ ['denver','America/Denver',-105],['mexico city','America/Mexico_City',-99],['chicago','America/Chicago',-88],['bogotá','America/Bogota',-74],['new york','America/New_York',-74],
+ ['halifax','America/Halifax',-64],['santiago','America/Santiago',-71],['são paulo','America/Sao_Paulo',-47],['buenos aires','America/Argentina/Buenos_Aires',-58],['nuuk','America/Nuuk',-52],
+ ['reykjavik','Atlantic/Reykjavik',-22],['dakar','Africa/Dakar',-17],['lisbon','Europe/Lisbon',-9],['dublin','Europe/Dublin',-6],['london','Europe/London',0],
+ ['lagos','Africa/Lagos',3],['paris','Europe/Paris',2],['oslo','Europe/Oslo',11],['berlin','Europe/Berlin',13],['rome','Europe/Rome',12],['kinshasa','Africa/Kinshasa',15],
+ ['cape town','Africa/Johannesburg',18],['athens','Europe/Athens',24],['cairo','Africa/Cairo',31],['istanbul','Europe/Istanbul',29],['nairobi','Africa/Nairobi',37],['moscow','Europe/Moscow',37],
+ ['tehran','Asia/Tehran',51],['dubai','Asia/Dubai',55],['karachi','Asia/Karachi',67],['mumbai','Asia/Kolkata',73],['kathmandu','Asia/Kathmandu',85],['dhaka','Asia/Dhaka',90],
+ ['bangkok','Asia/Bangkok',100],['jakarta','Asia/Jakarta',107],['ho chi minh','Asia/Ho_Chi_Minh',107],['singapore','Asia/Singapore',104],['hong kong','Asia/Hong_Kong',114],
+ ['manila','Asia/Manila',121],['shanghai','Asia/Shanghai',121],['perth','Australia/Perth',116],['seoul','Asia/Seoul',127],['tokyo','Asia/Tokyo',140],['osaka','Asia/Tokyo',135],
+ ['darwin','Australia/Darwin',131],['brisbane','Australia/Brisbane',153],['sydney','Australia/Sydney',151],['auckland','Pacific/Auckland',175],['suva','Pacific/Fiji',178]
+];
+var HOME='los angeles',HOMETZ='America/Los_Angeles',HOMELON=-118;
+var NIGHT=[
+ 'a render finishes. nobody will see it until nine.','an inbox goes quiet.','a backup completes. it always does.',
+ 'a translation stops mid-sentence, then finishes the sentence.','a weather model runs. tomorrow: rain, mostly.',
+ 'a hospital rota rebuilds itself for the morning.','the river gauge reads normal.','a delivery route is redrawn around a closed bridge.',
+ 'a voicemail is written out. it says "call me back."','a spreadsheet balances. nobody cheers.','a song is mastered, then mastered again, quieter.',
+ 'a bakery’s order goes in for four hundred loaves.','a satellite photo of a field arrives. the field is fine.','a contract is read twice, slowly.',
+ 'a film is subtitled in a language its director doesn’t speak.','somebody’s grandmother’s recipe arrives in somebody else’s language.',
+ 'a timetable is checked again. still right.','a mistake is caught before anyone makes it.','a message is held until morning, on purpose.',
+ 'a job runs that checks the other jobs.','four thousand photos are sorted by who’s in them.','a lighthouse log is written by something that isn’t a keeper.',
+ 'a phone charges to eighty percent and decides that’s enough.','a library’s scans reach page ninety thousand.','a pharmacy reorders what it ran out of today.',
+ 'a power grid moves a little load from one city to the next.','a building’s heating turns down a degree. nobody’s there to mind.','the same question gets a better answer than yesterday.',
+ 'a kid’s homework is checked by nobody who’ll be thanked.','an old film is cleaned, frame by frame.','a ship’s course is corrected by half a degree.',
+ 'a draft gets shorter.',"a wildlife camera catches an owl. it’s filed under “birds, night”.","a moth lands on a security camera. the camera watches it for an hour.","a butterfly count from last summer is finally added up.","a fish farm’s water is tested. clean.","a microphone in the ocean hears a whale. it’s written down.","an aquarium logs its octopus as “out of tank, again”.","a dog’s microchip is read at a shelter. someone gets a call at seven.","a cat flap logs its fourth trip tonight.","a children’s book about a rabbit is printed, page by page.","a road sensor counts a deer crossing and slows the next car.","a parcel moves at the speed of a snail and is still on time.","a bat detector in a barn counts forty-one.","a web crawler reads the same page it read yesterday.","a fishing boat reports its crab pots. eleven full.","a turtle wearing a tracker crosses a line on a map.","a camera trap photographs an elephant at 03:12.","a weather station in the desert reports to nobody but itself.","a farm’s alarm is set for 05:30. the rooster doesn’t need one.","a lake’s webcam shows one swan, not moving.","a zoo’s night camera counts the flamingos. all sixty.","a parrot asks a voice assistant the same question, again.","a florist’s order goes in: two hundred roses for a wedding.","a forest’s sensors report a tree fell. nobody heard it.","a beach hotel waters the palms at four.","a greenhouse turns the humidity up for the mushrooms.","a desert greenhouse waters each cactus exactly once a month.","the tide tables are worked out again for the moon.","an observatory flags a planet that might be one.","a launch is pushed back a day. the rocket waits.","a sign language video is subtitled, hand by hand.","a letter is written for someone who can’t, in their own words.","a hearing aid updates itself in a glass by the bed.","a step counter on a nightstand still says 9,412.","a hotel door makes a new key for the morning guest.","a lock checks itself. still locked.","every clock in a train station is corrected by a second.","a parking meter runs out on a street with no cars.","a church bell skips three o’clock, for the neighbours.","a street of lamps dims to half. nobody’s walking.","a sailboat’s autopilot holds its course all night.","a ship at anchor reports its position every ten minutes.","tomorrow says rain. a shop orders umbrellas.","a city’s shared bicycles are counted and moved back to the stands.","a guitar track is tuned a quarter-tone flat, on purpose.","an orchestra’s parts are printed for the violins.","a playlist for someone who can’t sleep gets a little longer.","a film is cut to ninety minutes. the scissors are imaginary.","a vending machine in a hospital restocks the tea.","a vineyard’s frost alarm stays quiet. the wine will be fine.","a theatre’s seats are booked for tomorrow, chair by chair.","a buoy off the coast reports the waves: four metres, easing.","a snow plough’s route is planned for a storm that might not come.","a cloud forecast for a wedding: mostly clear.","a lightning counter in the mountains clicks twice.","a star chart for a school is printed overnight.","a comet is followed for another night. still there.","a pedestrian crossing waits for someone who isn’t coming.","a marathon route is redrawn around roadworks.","a dance school’s music is put in order for saturday.","a horse race is replayed frame by frame for a photo finish.","a radio tower blinks for the planes.","a mountain pass closes for snow. the signs change themselves.","a peace treaty is translated into its ninth language.",'a camera in an empty field takes one photo an hour.','a satellite passes over. nobody looks up.','a telescope logs the moon with nobody at the eyepiece.','a bird count runs from a microphone in a forest.','a horse farm\u2019s gate checks it\u2019s shut.','an x-ray of a hand is read before the doctor wakes.','a fridge in an empty shop hums along with everything else.','a sentence is rewritten so it doesn’t hurt anyone.'
+,
+ "a bridge counts its own vibrations. all fine.",
+ "a dam lets out a little water. the river doesn’t notice.",
+ "a train’s wheels are measured by the rails they pass over.",
+ "a night bus runs empty for one stop.",
+ "a ferry timetable is reprinted with one minute changed.",
+ "an airport’s runway lights test themselves, one by one.",
+ "a plane lands itself in fog. the pilots watch.",
+ "a baggage belt runs once more for a suitcase nobody claimed.",
+ "a container ship is unloaded by cranes that don’t get tired.",
+ "a canal lock fills for a boat due at dawn.",
+ "a toll gate counts a truck, then another truck.",
+ "a car park counts its empty spaces. four hundred and six.",
+ "a traffic light in a village changes for nobody, all night.",
+ "a road is gritted before the frost gets there.",
+ "a tunnel’s fans turn on for one lorry.",
+ "a subway map is updated for a station that opens monday.",
+ "a lift is called to the top floor by nobody.",
+ "an escalator in a closed mall runs a test lap.",
+ "a building’s windows report which ones are open. three.",
+ "a stadium’s grass grows under lamps, in the dark.",
+ "a golf course mows itself.",
+ "a robot vacuum finishes the hallway and parks under the sofa.",
+ "a dishwasher waits for cheaper electricity, then starts.",
+ "a washing machine finishes. it will sit there until morning.",
+ "a baby monitor hears a sigh and decides it’s nothing.",
+ "a thermostat learns that nobody’s home on thursdays.",
+ "a smoke alarm checks its battery. eighty-one percent.",
+ "a doorbell camera watches a fox cross the garden. it’s filed as “visitor”.",
+ "a hedgehog walks past a sensor that turns the porch light on.",
+ "a garden’s soil sensor asks for water. it will rain at six.",
+ "a beehive’s scale says the bees ate more than usual.",
+ "a cow’s collar reports she’s lying down. she is.",
+ "a drone counts a flock of sheep and gets the same number twice.",
+ "a milking robot waits for the first cow.",
+ "a grain silo measures how full it is. seventy percent.",
+ "a tractor plans tomorrow’s rows to the centimetre.",
+ "an orchard’s fans turn on to keep the frost off the apples.",
+ "a seed vault in the arctic checks its temperature. cold enough.",
+ "a glacier’s camera takes its nightly picture. a little smaller.",
+ "a volcano’s seismometer draws a flat line, mostly.",
+ "an earthquake on the other side of the world moves a needle here.",
+ "a tsunami buoy reports nothing. that’s the good news.",
+ "a river’s flood map is redrawn for spring.",
+ "a coral reef’s camera counts fish by colour.",
+ "a seal with a tag surfaces under the ice.",
+ "a migrating stork crosses a border. no passport.",
+ "a whale shark’s spots are matched to a photo from 2019.",
+ "a nightingale is recorded, and an app says “nightingale”.",
+ "a bird radar sees a million birds heading south.",
+ "a weather balloon is let go at midnight, on schedule.",
+ "a pollen count for tomorrow: high. the tissues are ordered.",
+ "an air monitor on a school roof says the air is good tonight.",
+ "a sea level gauge adds another number to a very long list.",
+ "a solar farm sits in the dark, waiting.",
+ "a wind farm turns all night, selling to the morning.",
+ "a battery the size of a building fills up while it’s cheap.",
+ "a power line is inspected by a drone that hums back at it.",
+ "a gas meter is read without anyone knocking.",
+ "a water main reports a leak before the road gets wet.",
+ "a sewer is mapped by a robot nobody envies.",
+ "a recycling plant sorts glass by colour. green, brown, clear.",
+ "a lost dog poster is matched to a found dog report.",
+ "a missing hiker’s phone pings once, from the right valley.",
+ "an ambulance gets every green light.",
+ "a blood bank moves twelve bags to where they’ll be needed.",
+ "a hospital’s pharmacy robot counts out tomorrow’s pills.",
+ "a heart monitor in room 4 keeps steady time.",
+ "a scan is compared to last year’s. no change. good.",
+ "a vaccine trial adds its thousandth result.",
+ "a protein is folded on a computer. it took one night.",
+ "a genome is read, letter by letter, three billion of them.",
+ "a lab freezer holds at minus eighty. it always has to.",
+ "a particle collider counts what it smashed today.",
+ "a telescope in chile opens its dome as the clouds clear.",
+ "a satellite reboots itself above the pacific.",
+ "the space station passes over for the sixth time today.",
+ "a mars rover is told where to drive tomorrow.",
+ "an asteroid is measured and found to be harmless.",
+ "a radio dish listens to the sky. mostly static. mostly.",
+ "a court transcript is typed out from the recording.",
+ "a parliament’s debate is turned into searchable words.",
+ "a museum’s alarm counts the paintings. all there.",
+ "a museum photographs a thousand beetles for its archive.",
+ "a painting is x-rayed. there’s another painting underneath.",
+ "a manuscript is read by a machine that can see faded ink.",
+ "a school timetable is solved. no clashes.",
+ "nine thousand exam scripts are scanned.",
+ "a spelling test is marked. most people got “necessary” wrong.",
+ "a library book is due tomorrow. a reminder goes out tonight.",
+ "an audiobook is read in a voice the author approved.",
+ "a podcast is cleaned of every “um”.",
+ "a radio station plays a song nobody requested, perfectly.",
+ "a newspaper is laid out for the morning. the crossword fits.",
+ "a crossword is checked. seventeen across was wrong.",
+ "a news story is fact-checked, line by line.",
+ "a weather map is drawn for the six o’clock.",
+ "a tv channel runs its overnight test card for nobody.",
+ "a cinema’s projector downloads friday’s film.",
+ "today’s rushes are synced to their sound.",
+ "a theatre’s lighting cues are saved for tomorrow’s matinee.",
+ "a choir’s parts are split so each voice can practise alone.",
+ "a concert hall’s piano waits under its cover. the tuner comes at five.",
+ "a drum track is nudged two milliseconds late, for feel.",
+ "a music library finds the song someone hummed.",
+ "a wedding video is cut down to four minutes. the speeches survive.",
+ "a birthday card is printed with the name spelled right.",
+ "a holiday photo has the stranger taken out of it.",
+ "a family tree finds a cousin in another country.",
+ "a recipe is scaled from four people to forty.",
+ "a bakery’s ovens preheat themselves at three.",
+ "a coffee roaster’s beans cool on schedule.",
+ "a brewery’s tank runs two degrees warm. it’s fixed.",
+ "a cheese cave turns its wheels. four hundred of them.",
+ "a restaurant’s book fills for saturday.",
+ "a menu is translated. the jokes don’t make it.",
+ "a supermarket plans its shelves for a heatwave.",
+ "a warehouse robot carries a box of socks across a dark room.",
+ "a pallet of bananas ripens on time, in the dark.",
+ "a lorry’s route avoids a low bridge.",
+ "a smudged address is read correctly.",
+ "a letter is sorted from a city of nine million down to one door.",
+ "a shoe shop orders size nines. always size nines.",
+ "a lost-property office logs its two hundredth umbrella.",
+ "a bank flags a purchase. it was real. she’s just in lisbon.",
+ "a pension is paid at midnight, to the penny.",
+ "a charity’s donations are counted. more than last year.",
+ "a cheque is read from a photograph.",
+ "the stock exchange is closed. the numbers are tidied anyway.",
+ "a contract in two languages is checked to say the same thing.",
+ "a patent is searched against every patent there is.",
+ "a planning application is read for the shadows it would cast.",
+ "a census form is read in nine handwritings.",
+ "an election’s count is checked against the count.",
+ "a city’s potholes are found by the buses driving over them.",
+ "a mural is photographed before the morning paint.",
+ "a bridge is lit in the colours of a team that won.",
+ "a fountain in a square switches off at one.",
+ "a clock tower is wound by a motor installed in 1974.",
+ "a ticket machine prints its own receipt roll.",
+ "a hotel guesses tomorrow’s breakfast: eighty-two eggs.",
+ "an alarm is snoozed. the machines understand.",
+ "a sleep tracker says it was a good night. it was.",
+ "a lamp left on in a kitchen turns itself off at two.",
+ "a night-light stays on, as promised.",
+ "a cleaning robot finds a stuffed rabbit and goes around it.",
+ "a sunrise is forecast to the minute for a photographer.",
+ "a weather vane points north. the data agrees.",
+ "an ice rink is resurfaced in an empty building.",
+ "a ski slope is groomed by a machine with its lights on.",
+ "a swimming pool’s water is tested. a little too much chlorine.",
+ "a gym’s treadmills update. nobody’s running.",
+ "a lighthouse foghorn stays quiet. clear night.",
+ "a garage door closes itself because somebody forgot.",
+ "a font is installed on ten thousand computers at once.",
+ "a website’s images are made smaller while nobody’s looking.",
+ "a password is changed because it was “password”."
+];
+var DAWN=['dawn. the shift moves on.','first light. the machines hand over.','the kettles start. it gets quiet in here.','sunrise. somebody else’s turn.'];
+var DUSK=['dusk. the shift picks up.','the office lights go off. something else stays on.','everyone goes home. the work doesn’t.'];
+
+var feed=document.getElementById('feed'),countEl=document.getElementById('count'),cells=document.getElementById('cells'),band=document.getElementById('band'),sr=document.getElementById('sr');
+var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+var OFF=(+(new URLSearchParams(location.search).get('skip'))||0)*60000;
+function NOW(){return new Date(Date.now()+OFF);}
+var fmts={};
+function local(tz,sec){var k=tz+(sec?'s':''),f=fmts[k]||(fmts[k]=new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:sec?'2-digit':undefined,hour12:false}));var s=f.format(NOW()).replace(/^24/,'00');return {s:s,h:+s.slice(0,2),m:+s.slice(3,5)};}
+function phase(h){return (h>=22||h<6)?'night':h<7?'dawn':(h>=18&&h<22)?'dusk':'day';}
+function rnd(a){return a[(Math.random()*a.length)|0];}
+var used={};function fresh(list,key){var u=used[key]||(used[key]=[]);var c=list.filter(function(x){return u.indexOf(x)<0;});if(!c.length){u.length=0;c=list;}var x=rnd(c);u.push(x);return x;}
+
+/* ---------- the band: the planet's night, west to east ---------- */
+var N=72;for(var i=0;i<N;i++)cells.appendChild(document.createElement('i'));
+var pin=document.createElement('span');pin.className='pin';band.appendChild(pin);
+var lab=document.createElement('span');lab.className='lab';lab.textContent='kaverne';band.appendChild(lab);
+function lonX(lon){return (lon+180)/360*100;}
+pin.style.left=lonX(HOMELON)+'%';
+function drawBand(){
+  var d=NOW(),utc=d.getUTCHours()+d.getUTCMinutes()/60;
+  [].forEach.call(cells.children,function(c,i){var lon=-180+(i+0.5)*360/N,solar=(utc+lon/15+48)%24;c.className=(solar<5.5||solar>=19.5)?'n':'';});
+  var dark=CITIES.filter(function(c){return phase(local(c[1]).h)==='night';});
+  DARK=dark.length;
+}
+/* things that tick every second: the clock, tonight's tally, kaverne's night's work */
+var DARK=0,SEATS=0,tallyEl=document.getElementById('tally');
+function tick(){
+  countEl.innerHTML='night in '+DARK+' of '+CITIES.length+' cities<span class="here">  ·  '+local(HOMETZ,true).s+' here</span>'+(SEATS?'<span class="here">  ·  '+SEATS+' in the seats</span>':'');
+  var d=NOW(),sec=d.getUTCHours()*3600+d.getUTCMinutes()*60+d.getUTCSeconds()+d.getUTCMilliseconds()/1000;
+  tallyEl.textContent=Math.floor(sec*38.6+Math.sin(sec/7)*20).toLocaleString('en-US')+' things done tonight';
+  var p=progress();lab.innerHTML=p<=1?'kaverne  ·  night shift <b>'+(p*100).toFixed(2)+'%</b>':'kaverne  ·  with the people';
+  var bw=band.clientWidth,lw=lab.offsetWidth;lab.style.left=Math.max(lw/2,Math.min(bw-lw/2,lonX(HOMELON)/100*bw))+'px';
+}
+
+/* ---------- kaverne's own night: timed to the studio's real night (pacific) ---------- */
+function progress(){var d=NOW(),t=local(HOMETZ),mins=t.h*60+t.m+d.getSeconds()/60;return ((mins-22*60+1440)%1440)/(8*60);}
+/* ours: the agents hand work to each other all night, in the language of the trade; the people take over by day */
+var CRAFT=[
+ ['colour','→ cut: lifted the blacks two points. the shadows were crushing on phones.'],
+ ['colour','→ comp: the sky was out of gamut for rec.709. pulled it back in.'],
+ ['colour','→ review: skin first. then the rest of the picture.'],
+ ['comp','→ gen: the matte chatters on frame 1,104. regenerating 1,097 to 1,121.'],
+ ['comp','→ review: clean plate on shot 12. the crowd is gone. the pigeons stayed.'],
+ ['comp','→ colour: grain matched to the plate. the cg was sitting on top like a sticker.'],
+ ['gen','→ comp: 121 frames. the model wants 8n+1. it’s 8n+1.'],
+ ['gen','→ look: seed 4471 has the right light. locking it.'],
+ ['gen','→ review: forty takes of the same pour. the coffee behaves in six.'],
+ ['gen','→ sound: the footsteps landed off the beat. retimed them to yours.'],
+ ['train','→ gen: character lora, step 2,400. she has the same ears in every shot now.'],
+ ['train','→ review: stopped at 3,000 steps. any longer and it only knows the one face.'],
+ ['look','→ gen: less contrast in the prompt, more in the grade. it holds up better.'],
+ ['look','→ boards: the 85 flattens the room. try it at 35.'],
+ ['boards','→ cut: the reverse is missing. you’ll want it at 0:14.'],
+ ['cut','→ sound: locked at 23.976. please don’t drift.'],
+ ['cut','→ review: cut on the blink. nobody will notice. that’s the point.'],
+ ['cut','→ boards: we don’t need the wide. the close-up already said it.'],
+ ['sound','→ cut: room tone under the dissolve. the silence was too clean.'],
+ ['sound','→ review: −14 lufs for the feeds, −23 for broadcast. two masters.'],
+ ['sound','→ colour: the hum at 60 hz was the fridge. it’s gone.'],
+ ['type','→ cut: the title needs four more frames to be read twice.'],
+ ['type','→ review: optical kerning on the “av”. the metrics were lying.'],
+ ['review','→ gen: the hands. count the fingers again.'],
+ ['review','→ comp: the reflection in the window doesn’t match the room.'],
+ ['review','→ cut: shorter.'],
+ ['review','→ everyone: it’s good. that isn’t the same as finished.'],
+ ["logo","→ review: the mark has to hold at 16 pixels. at 16 it’s a smudge. back to the sketch."],
+ ["logo","→ type: drew the k by hand. the font’s k looked borrowed."],
+ ["logo","→ print: one colour, no gradients. it has to survive being embroidered."],
+ ["logo","→ review: reversed out of black it reads heavier. thinned the stroke for the dark version."],
+ ["logo","→ design: clear space is the height of the a. nobody gets closer."],
+ ["logo","→ review: forty marks. thirty-nine were clever. keeping the one that wasn’t."],
+ ["design","→ type: twelve-column grid. the headline ignores it on purpose."],
+ ["design","→ review: moved everything four pixels. it was three off. you’d have felt it."],
+ ["design","→ print: the white space is doing the work. don’t fill it."],
+ ["design","→ colour: the button and the warning are the same red. one of them changes."],
+ ["design","→ words: the page wants one idea. there are three. pick one."],
+ ["design","→ review: squint test. the eye lands on the price. it should land on the face."],
+ ["design","→ motion: the hierarchy works in stills. now make it work in time."],
+ ["print","→ colour: rich black is 60/40/40/100. the plain black proofed grey."],
+ ["print","→ design: 3 mm bleed on every edge. the photo stops a millimetre short."],
+ ["print","→ colour: the shadows are over 300% ink. the paper will drown."],
+ ["print","→ type: that hairline won’t survive uncoated stock. heavier, please."],
+ ["print","→ review: the proof looked warm under the office lights. checked it at d50. it’s fine."],
+ ["type","→ design: the measure is ninety characters. forty-five to seventy-five reads better."],
+ ["type","→ words: a widow at the end of the paragraph. one word cut, problem gone."],
+ ["type","→ review: caps tracked out +60. the lowercase stays at zero."],
+ ["type","→ words: real quotes, not straight ones. and that apostrophe was upside down."],
+ ["type","→ review: it’s a true italic, not a slanted roman. you can see it in the a."],
+ ["type","→ design: hanging punctuation on the pull quote. the left edge reads clean now."],
+ ["colour","→ design: the brand blue failed contrast on white. darkened it until it passed 4.5:1."],
+ ["colour","→ cut: matched shot 7 to shot 6 on the skin, not the sky."],
+ ["colour","→ print: the screen is rgb. the paper isn’t. the green had to give a little."],
+ ["colour","→ review: complementary was too loud. split-complementary. calmer."],
+ ["colour","→ gen: the model loves teal and orange. asked for anything else."],
+ ["colour","→ look: warm highlights, cool shadows. the last hour of light."],
+ ["colour","→ motion: the grey looks blue next to the orange. that’s the orange’s fault."],
+ ["colour","→ review: graded on a calibrated monitor. checked on the worst phone we could find."],
+ ["words","→ design: the headline was nine words. it’s four now. it says more."],
+ ["words","→ review: cut every “very”. nothing got weaker."],
+ ["words","→ type: the line wants to break after “night”. not before."],
+ ["words","→ sound: read it aloud. the second sentence trips. fixed."],
+ ["words","→ review: wrote it forty ways. the first one was right. that happens."],
+ ["words","→ design: the button says “submit”. nobody wants to submit. it says “send” now."],
+ ["words","→ cut: the voiceover lands a word early. moved the cut, not the word."],
+ ["words","→ review: took out the adjectives. the nouns were fine on their own."],
+ ["sound","→ cut: j-cut on shot 9. we hear the sea before we see it."],
+ ["sound","→ score: the bass and the kick fight at 60 hz. carved a little out of the bass."],
+ ["sound","→ review: dialogue first. everything else ducks under it."],
+ ["sound","→ cut: there’s a breath before the line. keeping it. that’s the performance."],
+ ["sound","→ review: recorded the footsteps on real gravel. the library gravel sounded like rice."],
+ ["sound","→ motion: every whoosh is gone. you won’t miss them."],
+ ["sound","→ review: true peak at −1 dbtp. the streaming codecs won’t clip it."],
+ ["sound","→ score: the reverb tail outlasts the scene. trimmed the tail, not the scene."],
+ ["score","→ cut: the music changes key at 0:42. cut there."],
+ ["score","→ sound: down a semitone. it sat too bright under her voice."],
+ ["score","→ review: 72 bpm. a resting heart. that’s the point."],
+ ["score","→ cut: the downbeat lands three frames after your cut. moved the music, not the picture."],
+ ["score","→ review: took the drums out of the second verse. the song finally breathes."],
+ ["motion","→ design: things ease out arriving and ease in leaving. nothing real moves at constant speed."],
+ ["motion","→ review: the logo sting is 1.2 seconds. under one nobody sees it. over two nobody waits."],
+ ["motion","→ cut: the title holds twelve frames before it moves. let it land."],
+ ["motion","→ type: kinetic type, but slow. every frame has to be readable."],
+ ["motion","→ review: motion blur at a 180° shutter. it looks filmed now."],
+ ["motion","→ design: one thing moves at a time. the eye can only follow one."],
+ ["motion","→ review: the reduced-motion version is done. it’s quieter. some people prefer it."],
+ ["photo","→ colour: shot raw. there’s two stops of sky left in the highlights."],
+ ["photo","→ design: she’s looking off the left edge. flipped the layout, not the photo."],
+ ["photo","→ review: the best frame is the one where she half blinked. keeping it."],
+ ["photo","→ comp: shot the empty plate before and after. you’ll thank me."],
+ ["photo","→ look: one light, high and to the left. like a window."],
+ ["boards","→ cut: frame 9 crosses the line. she’ll look like she’s talking to herself."],
+ ["boards","→ photo: shoot it from a child’s eye height. the room gets bigger."],
+ ["cut","→ review: the scene works without its first line. so the line goes."],
+ ["cut","→ sound: the cut is on the frame of impact. one later reads late."],
+ ["gen","→ comp: upscaled 2x. the faces got better. the brick got worse. masking the brick."],
+ ["gen","→ look: the model keeps adding a sunset. asked it, nicely, not to."],
+ ["comp","→ cut: the roto on shot 4 is done. she has every hair."],
+ ["comp","→ review: added a contact shadow under the cup. now it’s on the table, not near it."],
+ ["train","→ review: forty photos of the product. it still thinks there are two buttons."],
+ ["review","→ everyone: it’s technically right. it doesn’t feel like anything yet."],
+ ["review","→ design: what would this look like if it were half as polite?"],
+ ["review","→ words: say the thing you’re scared to say."],
+ ["review","→ look: it looks like everything else. good start. now break it."],
+ ["review","→ everyone: the mistake in version four is the best part. keep the mistake."],
+ ["review","→ cut: we’ve seen this done. what haven’t we seen?"],
+ ["review","→ people: the safe one is in the folder. so is the one we’d make."]
+];
+var DAYTIME=[
+ ['people','→ review: the strange one. obviously.'],
+ ['people','→ gen: the fingers are right now. thank you.'],
+ ['people','→ cut: the third version, with the music from the first.'],
+ ['','daylight. the agents rest; the people decide.']
+];
+function ours(){var w=progress()>1?fresh(DAYTIME,'day'):fresh(CRAFT,'craft');return {role:w[0],text:w[1]};}
+
+/* ---------- prisoner's cinema: what the dark makes of the lines going past ---------- */
+var DRIFT=['a horse crosses the far wall. there’s no horse.','something like a hand, high up on the left.','the drip sounds like someone counting.',
+ 'a light, far back. it isn’t a light.','the water sounds like a room full of people.','for a moment the wall looks like a map of somewhere.','a door where there isn’t a door.'];
+var watched=0,lastSeen=performance.now(),lastDrift=0;
+setInterval(function(){var t=performance.now();if(!document.hidden)watched+=(t-lastSeen)/1000;lastSeen=t;},500);
+var SHAPES={"horse": ["00000000000000000000000000000000000000000002622000", "00000000000000000000000000000000000000357899992000", "00000000000000000000000000000000000268999999997000", "00000000000000000000000000000000005999999999999500", "00000000000000000000000000000000389999999999999920", "00000000000000000000000000000004999999999958999981", "00000000000000112110000000000389999999999600159998", "00000000000368999998765555568999999999999200001773", "00000014778999999999999999999999999999997000000000", "00000599899999999999999999999999999999992000000000", "00006997599999999999999999999999999999980000000000", "00039996599999999999999999999999999999992000000000", "00079996299999999999999999999999999999990000000000", "00099997079999999999999999999999999999940000000000", "00199995029999999982579999999999999999500000000000", "00599993049999999920000123444444999999950000000000", "00799970399971999600000000000000899437998300000000", "02999815999405998000000000000001997000138950000000", "05998119981019992000000000000002993000001970000000", "06731049700001796000000000000004980000001940000000", "01000089100000059700000000000003930000003950000000", "00000296000000003982000000000006900000007930000000", "00000893000000000398000000000009800000399300000000", "00000396000000000099300000000006940000272000000000", "00000079700000000026200000000000697100000000000000"], "bird": ["0000000000000000000000000000000000000001004200", "2100000000000000000000000000000000000042265340", "7872100000000000000000000000000000002666865532", "8998770000000000000000000000000000379999986541", "3999999830000000000000000000000369999999998420", "0599999998400000000000000000369999999999973000", "0038999999995100000000000048999999999999400000", "0000379999999974000000000699999999999941000000", "0000003799999999840000006999999999995100000000", "0000000003799999997200069999999999940000000000", "0000000000038999999932899999999999300000000000", "0000000000000599999999999999999971000000000000", "0000000000000059999999999999997200000000000000", "0000000000038999999999999999720000000000000000", "0000000000033589999999999999877777788400000000", "0000000000000001368999999999999999999400000000", "0000000000000000000012221113899999997000000000", "0000000000000000000000000000037898750000000000"], "hands": ["0000000000000000000000397215970000000000000000000000", "0104764200000000000000069999920000000000000135785021", "8989999997520000000000008999400000000000268999999997", "2799999999998520000000029999500000001258999999998873", "4998789999989999741000299999940001479999889999878995", "0268989999988999999756999769997679999998899999898620", "0005889999999999999999999539999999999999999999987000", "0005999999999999999999999889999999999999999999995000", "0000158999899999999999999999999999999999988998410000", "0000000368999999999999999999999999999999999530000000", "0000000000389999999999999999999999999999840000000000", "0000000000003799999999999999999999999984000000000000", "0000000000000026999999999999999999996200000000000000", "0000000000000000027999999999999998300000000000000000", "0000000000000000001999999999999997000000000000000000", "0000000000000000007999999419999999400000000000000000", "0000000000000000005789864001689986300000000000000000"], "camera": ["0000001699832798600000", "0000007999999999960000", "0000003999999999940000", "5520015899999995100000", "6999999999999998681000", "5754359999999995253000", "0000002589999751004530", "0000000029997100000000", "0000000019996132410000", "0000000189999201310000", "0000001889998820000000", "0000006557147380000000", "0000018083019364000000", "0000053492035727000000", "0000196747681379500000", "0000568326171086700000", "0001737025060017650000", "0005572025060005671000", "0017650016160000776000", "0057700016250000288200", "0078300005430000059600", "0395000004510000007910", "0780000005610000001960", "3930000005800000000492", "9700000000100000000088", "5000000000000000000016"], "bearer": ["000000023100258610", "000002899923789530", "000002999979999840", "000000799979999930", "000000466999989800", "000000008999957300", "000000089999989300", "000000099999999500", "000000079999999300", "000000199999973000", "000000069999920000", "000000039999950000", "000000069999980000", "000000299999970000", "000000799999990000", "000001999999993000", "000004997479951000", "000006970009970000", "000007970001798200", "000019960000089800", "000039810000018920", "000069200000001970", "002597000000000896", "367894000000148864"], "dove": ["0000000000000000000000000000000281000", "0000036840000000010000000000004982681", "0000699900000000073220000000389969970", "3102986000000000195962000048999999867", "9812212300000000699996015999999999995", "6973599400000003999999799999999999980", "0367863000000009999999999999999999960", "6525268411000049999999999999999999700", "2795665799700079999999999999999997100", "0000057999940099999999999999999950000", "0000034399960299999999999999998300000", "0000025079996999999999999999950000000", "0000000089999999999999999998400000000", "0000000099999999999999999740000000000", "0000000089999999999999761000000000000", "0000000039999999999931000000000000000", "0000000005999999999980000000000000000", "0000000000699999999998100000000000000", "0000000000049999999999974100000000000", "0000000000000368999999999963000000000", "0000000000000000000029999999851000000", "0000000000000000000001899999999100000", "0000000000000000000000158999999300000", "0000000000000000000000000247798400000"], "owl": ["000369998753222221100246642", "000027999999999999988999310", "000025999999999999999999200", "000008999999999999999999800", "000049999999999999999999940", "000069999999999999999999980", "000059999999999999999999990", "000049999999999999999999960", "000049999999999999999999800", "000499999999999999999999100", "004999999999999999999999100", "029999999999999999999999200", "079999999999999999999999200", "299999999999999999999999100", "599999999999999999999996000", "799999999999999999999970000", "999999999999999999999400000", "999999999999999999961000000", "999999999999999999300000000", "996469999999999993000000000", "110099999964598310000000000", "000012239800078000000000000", "000135359975688877777310000", "000013336942210013310000000"], "moth": ["4789987631000000000000000000001367899874", "7999999999510000000000000000159999999997", "0499999999995000100000010005999999999940", "0028999999999820020000200289999999998200", "0002999999999993020000203999999999992000", "0000699999999999302002039999999999960000", "0000699999999999920770299999999999960000", "0000499999999999992992999999999999940000", "0000199999999999999999999999999999910000", "0000059999999999999999999999999999500000", "0000003899999999999999999999999983000000", "0000059999999999998997999999999999500000", "0000399999999999996995999999999999930000", "0000189999999999996676999999999999810000", "0000069999999999995005999999999999600000", "0000009999999999980000899999999999000000", "0000004999999999920000299999999994000000", "0000000999999999400000049999999990000000", "0000000259999971000000001799999520000000", "0000000004558300000000000038554000000000"], "fish": ["0000000000002897642100000000000000000000", "0000000000039999999985310000000000000000", "0000000000399999999999997410000000000000", "0000000035999999999999999996100000000000", "0000026999999999999999999999950000000000", "0001699999999999999999999999998100000004", "0039999999999999999999999999999810000278", "0399999999999999999999999999999950137995", "1999999999999999999999999999999987999994", "7999999999999999999999999999999999999993", "3689999999999999999999999999999999999993", "0155579999999999999999999999999999999992", "0399978999999999999999999999999999999993", "0059999999999999999999999999999757999993", "0003999999999999999999999999993000147995", "0000158999999999999999999988996000000277", "0000000368999999999999999600123000000001", "0000000000123445555589999800000000000000", "0000000000000000000002468940000000000000"], "whale": ["000000000000000000000000000000188000000", "000000000000000000000000000003899200000", "000000000000000000000000000059999100000", "000000000000000000000000000399996000000", "000000000000000000000000038999994000000", "000000000000000000000000499999999610000", "000000000000000000000006999975999993000", "000000000000000000000004553100199999400", "000000000000000000000000000000039999930", "000000000000000000000000000000069999980", "028765321000000000000000000000028999994", "789999999875421000000000000000009999996", "899999999999999987300000000000079999998", "299999999999999999974100000002799999998", "049999999999999999999987656789999999996", "006999999999999999999999999999999999993", "000799999999999999999999999999999999970", "000089999999999999999999999999999999910", "000018999999999999999999999999999999200", "000001799999999999999999999999999992000", "000000069999999999999999999999999810000", "000000002799999999999999999999996000000", "000000000026899999999999999989999400000", "000000000000024678999998764201456600000"], "octopus": ["0000000000000025789999875200000000000000", "0000000000015899999999999985100000000000", "0000000000499999999999999999950000000000", "0000000007999999999999999999997000000000", "0000000079999999999999999999999700000000", "0000000699999999999999999999999960000000", "0000001999999999999999999999999992000000", "0000005999999999999999999999999995000000", "0000007999999999999999999999999997000000", "0000007999999999999999999999999997000000", "0000005999999999999999999999999996000000", "0000002999999999999999999999999993000000", "0000000899999999999999999999999980000000", "3530000299999999999999999999999920000353", "9998300029999999999999999999999200038999", "6999985324999999999999999999994235899997", "0699999999999999999999999999999999999960", "0029999999999999999999999999999999999300", "0059999999999999999559999999999999999500", "0039999999999999994004999999999999999400", "0003899999999999950000599999999999994000", "0000133787689411000000001149967873310000"], "dog": ["000000053720000000000000000000000000000", "000000069980000000000000000000000000000", "000000179994000000000000000000000100000", "000037999999300000000000000001589998620", "565799999999910000000000000029999999994", "999999999999960000000000000079510028999", "399999999999993000000000000039000003998", "024689999999999300000000000000000007992", "000002999999999963100000112332102599720", "000000399999999999998889999999999962000", "000000079999999999999999999999999700000", "000000019999999999999999999999999910000", "000000007999999999999999999999999940000", "000000003999999999999999999999999930000", "000000000799999999999999999999999920000", "000000000059999999999999999999999920000", "000000000049999997643106999999999950000", "000000036999999994000001999989999993000", "000005999987647997000000599921589998000", "000039832100002996000000299700004999100", "000018930000000797000000299200000399200", "000001310000000297000000597000000079400", "000000000000002797000014993000000069600", "000000000000004651000015530000000399500"], "cat": ["0000033400000000000000000000289998641000", "0000099960000000000000000000144456999610", "0001489998200000000000000000000000038981", "0059999999920000000000000000000000000897", "0599999999970000000000000000000000000699", "7999999999992000000000000000000000001897", "2999999999998000000000000000000000039981", "0246999999999840000000001234555557999610", "0000699999999998644457899999999999962000", "0000299999999999999999999999999999920000", "0000099999999999999999999999999999970000", "0000089999999999999999999999999999991000", "0000069999999999999999999999999999991000", "0000039999999999999999999999999999991000", "0000008999999999999999999999999999992000", "0000001999999999999999999999999999994000", "0000000289999999999988765579999999999100", "0000000039999997221100000019999899999940", "0000000019999994000000000007999003689995", "0000000029986994000000000003998000003998", "0000000059920895000000000005992000000997", "0000035799525995000000001789940000267994", "0000059985037651000000001555300000278760"], "rabbit": ["000000000000257884431000000000000000000", "000000000038999999991000000000000000000", "000000011599999999720000000000000000000", "000147999999999752000000000000000000000", "004999999997210000000000000000000000000", "069999999997000000000000000000000000000", "799999999999400000000000000000000000000", "289999999999985100000000000000000000000", "001126999999999962000000000000000000000", "000000799999999999753200000000000000000", "000000399999999999999997631000000000000", "000000299999999999999999999741000000000", "000000079999999999999999999999500000000", "000000279999999999999999999999982000000", "000017999999999999999999999999999200000", "000189749998799999999999999999999900000", "002996069950039999999999999999999940000", "003620899400002999999999999999999950000", "000000551000000699999999999999999972430", "000000000000000399999999999999999999996", "000000000000000079999999999999999999997", "000000000000000018999999999999999999971", "000000000000179989999999999999999998400", "000000000000588888888888889999923420000"], "deer": ["00001330001200000000000000000000000000", "00113254222400000000000000000000000000", "02567989978100000000000000000000000000", "00012227756100000000000000000000000000", "00000039878930000000000000000000000000", "00246899999710000000000000000000000000", "69999999972000000000000000000000000000", "57779999970000000000000000000000000000", "00004999994000000000000000000000000000", "00002999999632100000001234566531000000", "00000999999999998888899999999999600000", "00000599999999999999999999999999960000", "00000089999999999999999999999999991000", "00000018999999999999999999999999994000", "00000002999999999999999999999999977100", "00023589999999999999999999999999982300", "00199955666799777665432269999789995000", "00015850000099100000000004999504899500", "00000058510069000000000000189800038920", "00000000576269000000000000049400001950", "00000000000038000000000000068000000490", "00000000000038000000000000093000000095", "00000000000077000000000000780000000078", "00000000000140000000000001400000000193"], "snail": ["0000000000000000000000000000000039602200", "0000000000000000000000000000000079829910", "0000000000000000000000000000000059329800", "0000000013566654200000000000000028009200", "0000003799999999996300000000000057045000", "0000289999999999999983000000000198184000", "0005999999999999999999600000000699999400", "0069999999999999999999960000028999999960", "0499999999999999999999994000399999999995", "1999999999999999999999999103999999999997", "5999999999999999999999999408999999998733", "8999999999999999999999999729999999400000", "8999999999999999999999999959999996000000", "7999999999999999999999999999999992000000", "4999999999999999999999999999999991000000", "0799999999999999999999999999999991000000", "0189999999999999999999999999999993000000", "0006999999999999999999999999999996000000", "0000279999999999999999999999999998000000", "0016899999999999999999999999999995000000", "0039743322223334456678899876666530000000"], "bat": ["0000001200000000000002467899999988764", "0000489960000000014799999999999999992", "0018999991000003799999999999999999910", "1289999994016489999999999999999999300", "1899999995001999999999999999999997000", "0399999996000899999999999999999993000", "0099999996000899999999999999999992000", "0059999995000799999999999999999992000", "0008999997000799999999999999999994000", "0351899999200999999999999999999993000", "0597499999504999999999999999999620000", "0399799999629999999999999999983000000", "0199999999899999999999999999810000000", "6899999999999999999999999999100000000", "6999999999999999999999999996000000000", "0688999999999999999999999992000000000", "0000039999999999999999999990000000000", "0000006999999999999999643540000000000", "0000000899999999999981000000000000000", "0000000059999999999910000000000000000", "0000000001478999999700000000000000000", "0000000000000396999800000000000000000", "0000000000000180179940000000000000000", "0000000000000251005354000000000000000"], "spider": ["0000000000320000000000320000000000", "0000000000720000000000450000000000", "0000200000830000000000570000020000", "0000600000950000000000870000250000", "0000550000870000000000950000730000", "0000193000590000000001930005800000", "0000049200291000000003900049200000", "0000005910097002011019700393000000", "0000000691019717895198002940000000", "0000000058732899999961478300000000", "0000000000487589999858730000000000", "0000001587666899999986667740000000", "0000278522468999999997642268610000", "0017840001579999999998641001696000", "0096000049789999999999789200018700", "0750000088049999999999209500000750", "4600000193019999999997006800000072", "5000000590002899999971001920000015", "0000000960000058998400000870000000", "0000002920000000110000000490000000", "0000001900000000000000000290000000", "0000001800000000000000000280000000", "0000001700000000000000000160000000", "0000000400000000000000000040000000"], "crab": ["0000000000146898620000268986410000000000", "0000000158999842100000012479998510000000", "0000004999999876530000246789999995000000", "0000169999997410000000000147999999720000", "0001999998520000000000000000258999991000", "0006999510000000100000011000000149997000", "0007999300000006930000297000000039998000", "6302999984000345884554885531003899992037", "8983148999869999999999999999789998513898", "0599710138999999999999999999999410179960", "0026998879999999999999999999999788997200", "0000023489999999999999999999999943200000", "1367788789999999999999999999999978877641", "3665423566899999999999999999996653235663", "0000035667899999999999999999997666300000", "0016999667778899999999999988777669996100", "0499951000001249999999999521000000599950", "0763100289999988775555778899999830003680", "0000005982232100000000000012321796000000", "0000069800000000000000000000000079700000", "0000089000000000000000000000000008800000", "0000016000000000000000000000000006100000"], "turtle": ["0346787640000000000000000000000000000000", "7999999995000000000000000000000000000000", "7999999999100000000000000000000000000000", "0599999999000000000000000000000000000000", "0013699998000000000000000000000000000000", "0000069997000000123567777542000000000000", "0000059997311368999999999999962000000000", "0000049998889999999999999999999710000000", "0000039999999999999999999999999994000000", "0000019999999999999999999999999999600000", "0000007999999999999999999999999999950000", "0000001899999999999999999999999999995700", "0000000189999999999999999999999999999600", "0000000005999999999999999999999999999300", "0000000002999999999999999999999999999973", "0000000007999999999999999999999999930011", "0000000019999999956788898899999999982000", "0000000069999999940000000099999999999500", "0000000699999999980000000499999999999910", "0000000111278998730000000688888852211000"], "elephant": ["0000000000000146888610000000000000000000", "0000000000026999999970000000000000000000", "0000003577899999999940000000000000000000", "0000489999999999999600000000000000000000", "0004999999999999999866554444444432000000", "0029999999999999999999999999999999961000", "0069999999999999999999999999999999998100", "0199999999999999999999999999999999999800", "0499999999999999999999999999999999999920", "0599997545899999999999999999999999999960", "0599940000039999999999999999999999998480", "0399800000004999999999999999999999999280", "2489800650001999999999999999999999999171", "1018975950004999999999999999999999998062", "0000377400029999999933577878999999999297", "0000000000199998999920000004999959999598", "0000000000599970699950000003999603999554", "0000000000289997299980000004999300899910", "0000000000005995079992000007999100699810", "0000000000000110015630000017985000242000"], "camel": ["0000000000000000000378850002799610000000", "0000267631000000003999995009999991000000", "6998999999200000008999999359999996000000", "4689999999800000179999999999999999100000", "0018999999800027999999999999999999710000", "0003999999843599999999999999999999994000", "0002999999999999999999999999999999999710", "0001999999999999999999999999999999999540", "0000599999999999999999999999999999999240", "0000026889999659999999999999999999999250", "0000000002311000799999766553205999999393", "0000000000000001899999600000000699999269", "0000000000000004999999800000000199899813", "0000000000000000499999300000000299459920", "0000000000000000079649300000000295019600", "0000000000000000029409700000000860019300", "0000000000000000029308900000038800049300", "0000000000000000299459600000377101799300", "0000000000000001897211000000000001443000"], "rooster": ["00557531000000000000000000000000000000", "06999998730000000000000000000000000000", "49999999920000000000000000000000000000", "69999999830000000000000000000000000000", "38999999996000000000000000000011100000", "18999999999700000000000000136899886200", "39999999999960000000000159999998866960", "15899999999996000000026999999999940176", "00059999999999600000699999999999970003", "00059999999999985327999999999999840000", "00059999999999999999999999999999830000", "00049999999999999999999999999999500000", "00019999999999999999999999999984000000", "00005999999999999999999999999700000000", "00000699999999999999999999996000000000", "00000049999999999999999999620000000000", "00000001699999999999999982000000000000", "00000000017999999999999710000000000000", "00000000001899999999431000000000000000", "00000000000159987992000000000000000000", "00000000000057201930000000000000000000", "00000000001750005600000000000000000000", "00000366457752249620000000000000000000", "00000133110178643232000000000000000000"], "swan": ["0037887400000000000000000000000000000000", "0799999982000000000000000000000000000000", "4999999999100000000001344788441000000000", "2999722999500000004779999999996000000000", "0995000699600001789999999999999400000000", "4930000799500029999999999999999900000000", "4200002999100069999999999999999910000000", "0000019995000189999999999999999910000000", "0000299970003999999999999999999820100000", "0003999600169999999999999999999999700000", "0049998467999999999999999999999999510000", "0599999999999999999999999999999999999995", "4999999999999999999999999999999999998630", "9999999999999999999999999999999999620000", "8999999999999999999999999999999951000000", "1799999999999999999999999999963000000000", "0025799999999999999999999984000000000000", "0000002356788999999888764200000000000000"], "flamingo": ["00389972000000000000000000000", "04999999200000000000000000000", "79853059600000000000000000000", "98000079300000000000000000000", "43000795000233210000000000000", "00018940169999999741000000000", "00189300899999999999720000000", "00894002999999999999997100000", "03980004999999999999999940000", "02993028998999999999999996000", "00499999730159999976789999600", "00002320000005945653211269940", "00000000000112800123568731581", "00000000004944833333334520013", "00000000001930700000000000000", "00000000000520820000000000000", "00000000000001910000000000000", "00000000000000710000000000000", "00000000000000500000000000000", "00000000000000500000000000000", "00000000000000400000000000000", "00000000000000500000000000000", "00000000000001700000000000000", "00000000003666500000000000000"], "parrot": ["0002578876410000000000000000000000000000", "0059999999995000000000000000000000000000", "0599999999999810000000000000000000000000", "7999999999999981000000000000000000000000", "9999999999999998100000000000000000000000", "8779999999999999930000000000000000000000", "1000039999999999997200000000000000000000", "0000004999999999999973000000000000000000", "0000000999999999999999720000000000000000", "0000000699999999999999994000000000000000", "0000000399999999999999999710000000000000", "0000000099999999999999999993000000000000", "0000000059999999999999999999400000000000", "0000000007999999999999999999950000000000", "0000000000599999999999999999995000000000", "0000000000026999999999999999999400000000", "0000000000000299999999999999999950000000", "0000000000000089999999999999999994000000", "0000000000000069995899997899999999500000", "0000000000000018960299950001124999984000", "0000000013432239521029800000000289999810", "0000000036998658997589856620000003578873", "0000000000000001121773101100000000000001"], "rose": ["0000010000799740002578998600011000000", "0017898753899998689999999977898100000", "0019999999999999999999999999995221000", "0000599999999999999999999999999963000", "0000016999999999999999999999983000000", "0000000699999999999999999999810000000", "0000000499999999999999999999400000000", "0000000699999999999999999999400000000", "0000000899999999999999999999700000000", "0000003999999999999999999999920000000", "0000007999999999999999999999960000000", "0000019999999999999999999999990000000", "0000039999999999999999999999992000000", "0000049999999999999999999999992000000", "0110019999999999999999999999990000000", "0123547999999999999999999999820000000", "0000148999999999999999999999855432210", "0000000389999999999999999997410000011", "0000000003799999999999999730000000000", "0000000000013566899977752000000000000", "0000000000000000299800000000000000000", "0000000000000000189700000000000000000", "0000000000000000089500000000000000000", "0000000000000000189500000000000000000"], "tree": ["000000000000000036000000000000000", "000000000000000089100000000000000", "000000000000000499600000000000000", "000000000000003999940000000000000", "000000000000149999995000000000000", "000000000000489999999400000000000", "000000000035799999999962000000000", "000000000021499999999865100000000", "000000001557999999999984200000000", "000000001489999999999999600000000", "000000001389999999999999863200000", "000000178999999999999999997200000", "000000000389999999999999996200000", "000002468999999999999999999810000", "000037687899999999999999999761000", "000000256999999999999999999999600", "000159999999999999999999999996500", "001599999999999999999999999998500", "019999999999999999999999999999841", "479999989999789999999999999999996", "564201028862039999986999999993110", "000000000000007999980699699971000", "000000000000008999980024014410000", "000000000000006999960000000000000"], "palm": ["000000001345665678974456665310000000", "000000479999999999999999999998610000", "000059999999999999999999999999995000", "002899999999999999999999999999999700", "039999999999869899999999999999999970", "199999999999989999999999999998999994", "695488999999979989999998999762299998", "820168998689604788999757999999205999", "001899999942001999899607999999700497", "007999999710000482599960399897300041", "006688995000000000599980015599600000", "002896530000000000399980000399400000", "003999000000000000499996000036000000", "000591000000000000299997000000000000", "000000000000000000299997000000000000", "000000000000000000199999100000000000", "000000000000000000499998000000000000", "000000000000000000599999000000000000", "000000000000000000699999100000000000", "000000000000000002999999200000000000", "000000000000000004999998100000000000", "000000000000000005999996000000000000", "000000000000000029999996000000000000", "000000000000000026899872000000000000"], "mushroom": ["0000000000002457889999887542000000000000", "0000000014789999999999999999974100000000", "0000003799999999999999999999999973000000", "0000279999999999999999999999999999720000", "0005999999999999999999999999999999995000", "0069999999999999999999999999999999999600", "0599999999999999999999999999999999999960", "2999999999999999999999999999999999999993", "7999999999999999999999999999999999999997", "9999999999999999999999999999999999999999", "8999999999999999999999999999999999999999", "4999999999999999999999999999999999999994", "0599999999999999999999999999999999999960", "0037999999999999999999999999999999997300", "0000135788999999999999999999998765310000", "0000000000599999999999999999960000000000", "0000000000899999999999999999991000000000", "0000000002999999999999999999993000000000", "0000000004999999999999999999995000000000", "0000000006999999999999999999997000000000", "0000000005999999999999999999996000000000", "0000000000599999999999999999961000000000", "0000000000002467888998887643100000000000"], "cactus": ["0000000000000000257887510000000000000000", "0000000000000004999999994000000000000000", "0000000000000039999999999300000000000000", "0000000000000079999999999700000000000000", "0000000000000099999999999900000000000000", "0000000000000199999999999910000000000000", "0000000444300299999999999920000000000000", "0000007999940399999999999920000000000000", "0000059999990499999999999920000000000000", "0000089999991199999999999920000000000000", "0000089999991199999999999910000000000000", "0000079999991199999999999910001100000000", "0000059999995099999999999910289981000000", "0000019999999899999999999900899998000000", "0000003999999999999999999900999999100000", "0000000279999999999999999801999999100000", "0000000002578999999999999937999998000000", "0000000000000189999999999999999992000000", "0000000000000089999999999999999930000000", "0000000000000089999999999999874100000000", "0000000000000079999999999831000000000000", "0000000000000089999999999800000000000000", "0000000000000059999999999500000000000000", "0000000000000002457777542000000000000000"], "moon": ["0000000000000000000000000252000000000000", "0000000000000000000000000038852000000000", "0000000000000000000000000000699730000000", "0000000000000000000000000000059997200000", "0000000000000000000000000000007999940000", "0000000000000000000000000000001999995000", "0000000000000000000000000000000799999400", "0000000000000000000000000000000499999910", "0000000000000000000000000000000399999960", "0000000000000000000000000000000499999991", "0000000000000000000000000000000699999993", "0000000000000000000000000000001999999994", "0000000000000000000000000000006999999994", "0000000000000000000000000000049999999993", "0000000000000000000000000000599999999990", "3300000000000000000000000017999999999950", "0772000000000000000000001599999999999800", "0089730000000000000000269999999999999200", "0007999753210000113468999999999999992000", "0000699999999999999999999999999999710000", "0000038999999999999999999999999983000000", "0000000379999999999999999999998400000000", "0000000001468999999999999997520000000000", "0000000000000235677777654200000000000000"], "planet": ["5987531000000000000000000000000000000000", "9712455530000000000000000000000000000000", "3709987766420000000000000000000000000000", "0556999999875200123333210000000000000000", "0055799235888888999999998631000000000000", "0004579400189999999999999999610000000000", "0000367954999999999999999999994000000000", "0000025799999999999999999999999600000000", "0000000899999999999999999999999960000000", "0000002999999999999999999999999992000000", "0000006999999999999999999999999996000000", "0000008999999999999999999999999998000000", "0000008999999999999999999999999998000000", "0000006999999999999999999999999997000000", "0000002999999999999999999999999992000000", "0000000699999999999999999999999983000000", "0000000069999999999999999999999987500000", "0000000004999999999999999999994298660000", "0000000000169999999999999999920029856000", "0000000000001368999999998677897329984700", "0000000000000000123333210003678999996470", "0000000000000000000000000000035667899074", "0000000000000000000000000000000245542179", "0000000000000000000000000000000000356895"], "satellite": ["2741000000000000000000000000000000000000", "2999741000000000000000110000000000000000", "3999999852000000000266556520000000000000", "4999999999852000002834467776100000000000", "5999999999999810007329999988930000000000", "6999999999999910259799999999882000000000", "7999999999999801999999999999968000000000", "9999999999999827999999999999947200000000", "2589999999999999999999999999928100000000", "0002489999999999999999999999999520000000", "0000289999999999999999999999999998520000", "0000999999999999999999999999999999998520", "0002999999999999999999679999999999999997", "0001999999999999999961049999999999999996", "0000699999999999983200069999999999999994", "0000189999999999990000079999999999999992", "0000029999999999991000025899999999999990", "0000489799999999980000000025899999999970", "0005971026999999810000000000025899999950", "0000200000024542000000000000000014799930", "0000000000000000000000000000000000025820"], "rocket": ["0000000000000000000000000000013578999983", "0000000000000000000000000025799999999998", "0000000000000000000000014899999999999998", "0000000000000000000001699999999999999996", "0000000000000000000159999999999999999992", "0000000000000000004999999999999999999960", "0000000000000000269999999999999999999810", "0000000000000027999999999999999999999100", "0000001654456899999999999999999999981000", "0000049999999999999999999999999999710000", "0001799999999999999999999999999995000000", "0029999999999999999999999999999820000000", "0299999998679999999999999999994000000000", "3999999960368999999999999998400000000000", "5433444302999999999999999940000000000000", "0000000379999999999999999400000000000000", "0000018999999999948999998000000000000000", "0013299999999996228999998000000000000000", "0004999999999822899999998000000000000000", "0028999999997104999999951000000000000000", "0059999999920002999995100000000000000000", "0089998663000003998410000000000000000000", "0264430010000004730000000000000000000000"], "telescope": ["0000598300000000000000000000000000000000", "0028999973000000000000000000000000000000", "0399999999820000000000000000000000000000", "2999999999997300000000000000000000000000", "8999999999999984000000000000000000000000", "2589999999999999840000000000000000000000", "0003699999999999999510000000000000000000", "0000002699999999999996100000000000000000", "0000000004799999999999962000000000000000", "0000000000015899999999999720000000000000", "0000000000000026999999999996100000000000", "0000000000000000799999999999961000000000", "0000000000000000499988999999999620000000", "0000000000000002593000257999999996200000", "0000000000000016895210000258999999972000", "0000000000000599857996000000269999999730", "0000000000006997756699700000000379999998", "0000000000189950899039981000000001489994", "0000000002899400899103998200000000002410", "0000000039993000899100189930000000000000", "0000000499820000899100017994000000000000", "0000005998100000899100000699500000000000", "0000069970000000899100000059960000000000", "0000799600000000899100000004997000000000"], "hand": ["0000000000049970000000000000000000", "0000000000199995001320000000000000", "0000015630399997049995000000000000", "0000099993199997099998000000000000", "0000299997199997099998000000000000", "0000099998199997099998000000000000", "0000089999189997199997000000000000", "6995079999289998299996000000000000", "9999359999279998399995000000000000", "9999549999379998399995000000000000", "8999739999469999599994000000000000", "5999949999779999999994000000000000", "3999948999999999999995000015789851", "1999989999999999999998100499999999", "0799999999999999999999989999999985", "0599999999999999999999999999985200", "0299999999999999999999999998300000", "0099999999999999999999999970000000", "0069999999999999999999999700000000", "0039999999999999999999997000000000", "0008999999999999999999970000000000", "0001899999999999999999600000000000", "0000059999999999999973000000000000", "0000001468999999875200000000000000"], "writing": ["0000000000000000000000049730000000000000", "0000000000000000000000599991000000000000", "0000000000000000000006999920000000000000", "0000000000000000000179998100000000000000", "0000000000000000001899970000000000000000", "0000000000000000029999600000000000000000", "0000000000001345599995000000000000000000", "0000000002589999999971000000000000000000", "0000003689999999999999752000000000000000", "0002699999999999999999999963000000000000", "0039999999999999999999999999963100000000", "0079999999999999999999999999999975421100", "0089999999999999999999999999999999999992", "0199999999999999999999999999999999999997", "0399999999999999999999999999999999999998", "0499999999999999999999999999999999999999", "0699999999999999999999999999999999999998", "0699999999999999999999999999999999999996", "0189999999999999999999999999999999999993", "0299996899999999999999999999999999999960", "0899940289537994567657788776542100011100", "3985100001000100000000000000000000000000", "6400000000000000000000000000000000000000"], "ear": ["000000035789998752000000", "000015899999999999730000", "000499999999999999996000", "006999999999999999999800", "069999999999999999999960", "499999999999999999999992", "899999999999999999999996", "999999999999999999999998", "999999999999999999999999", "899999999999999999999999", "499999999999999999999997", "089999999999999999999994", "019999999999999999999991", "002999999999999999999960", "000399999999999999999910", "000059999999999999999600", "000008999999999999999100", "000005999999999999993000", "000005999999999999950000", "000008999999999999600000", "000019999999999996000000", "000019999999999950000000", "000005999999997200000000", "000000258998620000000000"], "footprints": ["00000034018982000000000000000000000000", "00035299239996000000000000000000000000", "01179515306871000000000000000000000000", "06923579984410000000000004884001000000", "43368999999993000000000019999079600000", "96499999999997000000000008996045369400", "06999999999997000000000000442553176220", "06999999999996000000000004789999940891", "01999999999971000000000039999999997354", "00399999999300000000000089999999999477", "00059999998000000000000199999999999940", "00006999999100000000000089999999999960", "00000699999600000000000016999999999910", "00000079999930000000000000149999999400", "00000019999995000000000000008999998000", "00000004999999700000000000049999991000", "00000000799999950000000000089999950000", "00000000299999991000000000799999800000", "00000000049999991000000018999999200000", "00000000002566510000000089999994000000", "00000000000000000000000299999990000000", "00000000000000000000000399999960000000", "00000000000000000000000199999920000000", "00000000000000000000000027998300000000"], "key": ["0000000000000000000000013567765420000000", "0000000000000000000014799999999998510000", "0000000000000000000499999999997679994000", "0000000000000000006999999999510000599700", "0000000000000000069999999996000000069960", "0000000000000000399999999995000000059992", "0000000000000000799999999999300000299995", "0000000000000000899999999999975457999995", "0000000000000000999999999999999999999993", "0000000000000006999999999999999999999980", "0000000000000008999999999999999999999910", "0000000000000169999999999999999999998200", "0000000000004999999999999999999999950000", "0000000000389999999999999999999863000000", "0000000016999999998455786444321000000000", "0000000499999999995000000000000000000000", "0000038999999999995000000000000000000000", "0001699999999999950000000000000000000000", "0049999999940112100000000000000000000000", "1899999999960000000000000000000000000000", "3999999878870000000000000000000000000000", "3999999300000000000000000000000000000000", "3999999500000000000000000000000000000000", "1666666300000000000000000000000000000000"], "lock": ["0000000000000000000000000000000000000000", "0000000000000000123443210000000000000000", "0000000000000258999999998520000000000000", "0000000000017999999889999997200000000000", "0000000000399998420000247999940000000000", "0000000003999940000000000399993000000000", "0000000009999300000000000029999100000000", "0000000039996000000000000005999500000000", "0000000069993000000000000002999700000000", "0000000079991000000000000001999700000000", "0000015599996555555555555556999955100000", "0000049999999999999999999999999999400000", "0000039999999999999999999999999999400000", "0000039999999999999999999999999999400000", "0000039999999999999999999999999999400000", "0000039999999999999999999999999999400000", "0000039999999999999999999999999999400000", "0000039999999999999999999999999999400000", "0000039999999999999999999999999999400000", "0000039999999999999999999999999999400000", "0000039999999999999999999999999999400000", "0000049999999999999999999999999999400000", "0000026666666666666666666666666666200000", "0000000000000000000000000000000000000000"], "clock": ["0000103578875200029999200025788753010000", "0006989999999600026886200059999999896000", "0039999999974478999999998744799999999300", "0299999999889999999999999999889999999930", "0899999999999999999999999999999999999980", "0999978999999999999999999999999999799991", "0696489999999999999999999999999999846960", "0021899999999999999999999999999999981200", "0008999999999999999999999999999999998000", "0049999999999999999999999999999999999400", "0089999999999999999999999999999999999800", "0199999999999999999999999999999999999920", "0399999999999999999999999999999999999930", "0299999999999999999999999999999999999920", "0099999999999999999999999999999999999910", "0069999999999999999999999999999999999700", "0019999999999999999999999999999999999200", "0004999999999999999999999999999999994000", "0000599999999999999999999999999999950000", "0000049999999999999999999999999999400000", "0000001899999999999999999999999981000000", "0000005997999999999999999999997995000000", "0000189710147899999999999987410179810000", "0000164000000023567777653200000004610000"], "hourglass": ["0000000356677888899999988888776530000000", "0000002999999999999999999999999992000000", "0000000599999999999999999999999950000000", "0000000079999999999999999999999700000000", "0000000089999999999999999999999800000000", "0000000199999999999999999999999910000000", "0000000079999999999999999999999700000000", "0000000019999999999999999999999100000000", "0000000001799999999999999999971000000000", "0000000000037999999999999998400000000000", "0000000000000258999999998520000000000000", "0000000000000000279999720000000000000000", "0000000000000000279999720000000000000000", "0000000000000258999999998520000000000000", "0000000000037999999999999997300000000000", "0000000001799999999999999999971000000000", "0000000019999999999999999999999100000000", "0000000079999999999999999999999700000000", "0000000199999999999999999999999910000000", "0000000089999999999999999999999800000000", "0000000079999999999999999999999700000000", "0000000499999999999999999999999950000000", "0000002999999999999999999999999992000000", "0000000356778888999999998888776540000000"], "bell": ["0000000000000000037997100000000000000000", "0000000000000000099999700000000000000000", "0000000000000257899999986420000000000000", "0000000000048999999999999997300000000000", "0000000001899999999999999999970000000000", "0000000019999999999999999999997000000000", "0000000069999999999999999999999300000000", "0000000099999999999999999999999700000000", "0000000299999999999999999999999910000000", "0000000499999999999999999999999920000000", "0000000699999999999999999999999930000000", "0000000799999999999999999999999950000000", "0000000899999999999999999999999960000000", "0000001999999999999999999999999980000000", "0000006999999999999999999999999994000000", "0000069999999999999999999999999999500000", "0003899999999999999999999999999999983000", "0179999999999999999999999999999999999600", "1899999999999999999999999999999999999970", "9999999999999999999999999999999999999997", "4678999999999999999999999999999999998753", "0000012233344479999999999644433221100000", "0000000000000006999999994000000000000000", "0000000000000000257987510000000000000000"], "bulb": ["000000146789987641000000", "000037999999999999730000", "001799999999999999997100", "018999999999999999999810", "089999999999999999999980", "499999999999999999999994", "799999999999999999999997", "899999999999999999999998", "699999999999999999999996", "299999999999999999999992", "049999999999999999999940", "004999999999999999999400", "000399999999999999993000", "000029999999999999920000", "000002999999999999200000", "000000699999999996000000", "000000499999999994000000", "000000199999999992000000", "000000199999999992000000", "000000079999999970000000", "000000079999999980000000", "000000059999999980000000", "000000005999999610000000", "000000000179982000000000"], "train": ["0000000000004899756300242010000000000000", "0000000000159999999956999980000000000000", "0000000016999999999999873110000000000000", "0000000089999999999963000000000000000000", "0000000199999999999960000000000000000000", "0000005899999945999950000000000000000000", "0000009999999910166300000000000000000000", "0000007999999910000000028888888888888887", "0000001999999300000000049999999999999999", "0000000499997000000000007999999999999821", "0000000089991000036500006972222224999300", "0000004699997643299952317950000000899200", "0000019999999999999999999950000000899200", "0000089999999999999999999963333333999200", "0000499999999999999999999999999999999200", "0000199999999999999999999999999999999400", "0000039999999999999999999999999999999200", "0000008999999999999999999999999999999400", "0000189999999999999999999999999999999940", "0002999999999999999999999999999999999710", "0039889999999999999999999999999999999840", "1578568888878899999977987789779776896651", "3444331455302566322200255654004565520000"], "sailboat": ["00000000000000003810000000000000000", "00000000000000003982000000000000000", "00000000000000004999300000000000000", "00000000000000005999930000000000000", "00000000000000005999993000000000000", "00000000000000006999999200000000000", "00000000000000156999999910000000000", "00000000000002966999999980000000000", "00000000000039957999999997000000000", "00000000000399947999999999400000000", "00000000003999938999999999920000000", "00000000049999928999999999980000000", "00000000499999819999999999995000000", "00000004999999719999999999999200000", "00000049999999619999999999999800000", "00000599999999529999999999999930000", "00005999999999429999999999999980000", "00069999999999339799999999999993000", "00166777877765046000112222211000000", "00112344556666688776666655555555200", "38999999999999999999999999999999951", "02799999999999999999999999999999994", "00038999999999999999999999999999820", "00000134678899999999998877665443000"], "anchor": ["00000000000000003799840000000000000000", "00000000000000039611595000000000000000", "00000000000000079233289000000000000000", "00000000000000029999994000000000000000", "00000000000000001999920000000000000000", "00000001431000014999951000003420000000", "00000008999888899999999888899991000000", "00000002541111115999962111114530000000", "00000000000000000999910000000000000000", "00000000000000001999920000000000000000", "00000000000000001999920000000000000000", "00100000000000001999920000000000000110", "05700000000000001999920000000000000660", "19910000000000001999930000000000001991", "69970000000000001999930000000000006997", "16920000000000001999930000000000001961", "02960000000000002999930000000000005930", "00797100000000003999950000000000169800", "00189952000000007999981000000025999100", "00017999865434589999999643456899981000", "00000489999999999999999999999999500000", "00000004799999999999999999999841000000", "00000000013578999999999987531000000000", "00000000000000012377321000000000000000"], "umbrella": ["0000000000000000000340000000000000000000", "0000000000001357889999887531000000000000", "0000000002589999999999999999852000000000", "0000000379999999999999999999999730000000", "0000027999999999999999999999999997200000", "0000499999999999999999999999999999940000", "0005999999999999999999999999999999995000", "0059999999999999999999999999999999999500", "0499999999999999999999999999999999999940", "1999999999999999999999999999999999999991", "8999999999999999999999999999999999999998", "4222432100124532111992012354210012342234", "0000000000000000000991000000000000000000", "0000000000000000000991000000000000000000", "0000000000000000000991000000000000000000", "0000000000000000000991000000000000000000", "0000000000000000000991000000000000000000", "0000000000000000000991000000000000000000", "0000000000000200000991000000000000000000", "0000000000006940000990000000000000000000", "0000000000002995338950000000000000000000", "0000000000000169998300000000000000000000"], "bicycle": ["0000000005997662000000000000000000000000", "0000000000148321000004576788600000000000", "0000000000019400000001139752000000000000", "0000000000059888888887779500000000000000", "0000000000099101111111069930000000000000", "0000000110397820000000095292001110000000", "0001578888994594000000491049788888741000", "0059731213958868700003991597922121489500", "0793110126811596692004937941571300114960", "5910022049410039339758869401267303200294", "9711112495111119707989899566558852111189", "9811112463211119627399799544456852111189", "5920122030320049304696469423430303200394", "0694110130011595000682106951100300115960", "0049842323258830005762000488523232588400", "0000478989873000000000000004789898740000"], "guitar": ["000000000000000000000000000000000246541", "000000000000000000000000000000135789999", "000000000000000000000000000000189999942", "000000000000000000000000000000399999600", "000000000000000000000000000003899668100", "000000000000000000000000000279951000000", "000000000000000000000000016997200000000", "000000000000014677200000499940000000000", "000000000000499995100038996100000000000", "000000000002999940002799830000000000000", "000000000006999985579995000000000000000", "000000000029999999999820000000000000000", "000001356799999999999100000000000000000", "002689999999999999991000000000000000000", "179999999999999999995346600000000000000", "799999999999999999999999800000000000000", "999999999999999999999996100000000000000", "899999999999999999996200000000000000000", "299999999999999999940000000000000000000", "029999999999999999800000000000000000000", "001799999999999999500000000000000000000", "000099999999999999000000000000000000000", "000021379999999981000000000000000000000", "000000001478997400000000000000000000000"], "violin": ["00000000000029888840000000000000000000", "00000000000005965793000000000000046510", "00000000000000620079100000000151089996", "00000000000000171019800000017559789995", "00000000000000027002960000001899999930", "00000000000000004500494000026999974682", "00000000000000000630069203799977248310", "00000000000000000071008989983000000000", "00000000000000001247158998400000000000", "00000000000000589999999996000000000000", "00000000000148999999999989300000000000", "00000000000299999999999977910000000000", "00000002000299999999999996880000000000", "00001359867999999999999999396000000000", "00389999999999999999999996049400000000", "39999999999999999999999882006920000000", "99999999999999999996467017000891000000", "79999999999999999910000003600198000000", "19999999999999999950000000640039600000", "02999999999999999950000000073008970000", "00299999999999999300000000019559995000", "00033489999999995000000000002999799100", "00000003689998520000000000000330029700", "00000000000100000000000000000000004810"], "headphones": ["00000000001357899999875310000000000", "00000000379999999999999997400000000", "00000048999998777777789999995000000", "00002899964200000000000246999820000", "00039973000000000000000000037994000", "00499300000000000000000000000399400", "02993000000000000000000000000039930", "08960000000000000000000000000006980", "39910000000000000000000000000001994", "79700000000000000000000000000000797", "99500000000000000000000000000000599", "79101453000000000000000000035410197", "49329999700000000000000000699993394", "59999999970000000000000007999999995", "59999999997000000000000079999999996", "19999999999700000000000799999999991", "03999999999970000000006999999999930", "00499999999996000000069999999999500", "00059999999999600000699999999995000", "00005999999999950005999999999960000", "00000599999999994049999999999600000", "00000059999999996059999999995000000", "00000004999996640004669999940000000", "00000000279970000000006997200000000"], "scissors": ["0000025677641000000000000001356664200000", "0003899999999610000000000169999999973000", "0069995222479992000000002999842236999500", "0399810000004999000000009994000000299920", "0699500000000699400000049960000000069950", "0599700000000299700000079920000000079950", "0199961000000399800000089930000001699910", "0028999632235999920000299995212369998200", "0000479999999999981001899999999999740000", "0000001356666556999559996556666531000000", "0000000000000000199999920000000000000000", "0000000000000004899999984000000000000000", "0000000000000179999999999820000000000000", "0000000000004999999449999994000000000000", "0000000000059999993003999999600000000000", "0000000000699999920000289999970000000000", "0000000007999998100000018999998000000000", "0000000079999970000000000699999800000000", "0000000699999500000000000059999970000000", "0000004999994000000000000004999995000000", "0000019999930000000000000000399999100000", "0000039998200000000000000000028999400000", "0000019971000000000000000000001799200000", "0000002600000000000000000000000063000000"], "teacup": ["0000000000000000000000000000000000000000", "0000000000000013331000000000000000000000", "0000000000000013212211000000000000000000", "0000000000000001113433000000000000000000", "0000000000000000211310000000000000000000", "0000000000000012323433211000000000000000", "0000000002568999999999999987530000000000", "0000000589999999999999999999999610000000", "0000007999999999999999999999999980000000", "0000019999999999999999999999999992355300", "0000008999999999999999999999999998766881", "0000038999999999999999999999999996000067", "0015899999999999999999999999999999951076", "0499999999999999999999999999999999998781", "5999999999999999999999999999999999999940", "9999999999999999999999999999999999999970", "7999999999999999999999999999999999999960", "1899999999999999999999999999999999999810", "0179999999999999999999999999999999995000", "0002699999999999999999999999999998510000", "0000003579999999999999999999987520000000", "0000000000235677889988776543100000000000"], "wine": ["004999999999999999998200", "009999999999999999999700", "049999999999999999999920", "089999999999999999999960", "399999999999999999999991", "699999999999999999999994", "899999999999999999999996", "999999999999999999999997", "999999999999999999999997", "699999999999999999999993", "199999999999999999999970", "028999999999999999999700", "001699999999999999994000", "000026999999999998510000", "000000159999999730000000", "000000000699993000000000", "000000000199960000000000", "000000000199960000000000", "000000000099960000000000", "000000112399972210000000", "014689999999999999875300", "499999999999999999999980", "279999999999999999999960", "001356788999999887643100"], "chair": ["1111223445667899100000000000", "8999999999999999300000000000", "7999999999999999400000000000", "5999999999999999600000000000", "3999999999999999700000000000", "1999765543221179800000000000", "0996000000000069900000000000", "0897000000000059910000000000", "0798000000000059910000000000", "0699000000000049910000000000", "0699000000000159930000000000", "0599334567789999999876432100", "0599999999999999999999999987", "0499999999999999999999999999", "0499424689999999987654321899", "0399400000499759920000000899", "0399400000199639920000000899", "0399400000199749910000000899", "0399300000199769910000000899", "0499300000199747600000000899", "0599200000199800000000000999", "0254000000199800000000000687", "0000000000099800000000000000", "0000000000079700000000000000"], "wave": ["0000000002455789865410000000000000000000", "0000001589999999999985000000000000000000", "0000049999999999999942000000000000000000", "0002799999999999999940000000000000000000", "0379999999999999999999986200000000000000", "7999999999999999958979682100000000000000", "9999999999999999401213011000000000000000", "9999999999999999000000000000000000000000", "9999999999999999300000000000000000000000", "9999999999999999800000000000000000000000", "9999999999999999960000000000000000000004", "9999999999999999997100000000000000001489", "9999999999999999999952000000000001369999", "9999999999999999999999875433345689999999", "9999999999999999999999999999999999999999", "9999999999999999999999999999999999999999", "9999999999999999999999999999999999999999", "9999999999999999999999999999999999999999", "9999999999999999999999999999999999999999", "9999999999999999999999999999999999999999"], "snowflake": ["0000000000000187200001100000000000000000", "0000000000000499910378900032000000000000", "0000000001210199964999800599400000000000", "0000000059887589999998100889800468400000", "0000000006899999789971000799848999300000", "0000198400146899888700000699999972000000", "0000398960000028898800000699779954420000", "0000069995000005999950027888899999998000", "5777669999300002999997899989756777763000", "3899999788876658999999999994000000000000", "0023699889989999988878999920000001577820", "0015899986789999986667889963100269999810", "0399998410012699887777899999887999973000", "0477530000000499998888899999898789964300", "0000000000016999999999996446788889999993", "0016788887689899967999990000039998456663", "0018999999989885100699893000006999500000", "0000123699779940000188987300000798910000", "0000005899999940000289889986410047700000", "0000069996499960003899879999996000000000", "0000056520198960049999999747889300000000", "0000000000059920298982799800110000000000", "0000000000002100297610299920000000000000", "0000000000000000000000027600000000000000"], "cloud": ["0000000000000000024789998752000000000000", "0000000000000003799999999999730000000000", "0000000003678779999999999999996000000000", "0000000289999999999999999999999700000000", "0000001999999999999999999999999930000000", "0000016999999999999999999999999985300000", "0004799999999999999999999999999999995100", "0389999999999999999999999999999999999920", "2999999999999999999999999999999999999992", "8999999999999999999999999999999999999997", "9999999999999999999999999999999999999999", "8999999999999999999999999999999999999997", "4999999999999999999999999999999999999992", "0599999999999999999999999999999999999930", "0027999999999999999999999999999999995100", "0000146778888888888888889999999876310000"], "lightning": ["0000000000000000000035000000", "0000000000000000001681000000", "0000000000000000049910000000", "0000000000000002899200000000", "0000000000000169993000000000", "0000000000004999940000000000", "0000000000289999600000000000", "0000000016999997000000000000", "0000000499999970000000000000", "0000028999999954444444444443", "0001699999999999999999999951", "0049999999999999999999995100", "3899999999999999999999720000", "2222222222222799999972000000", "0000000000006999998300000000", "0000000000079999940000000000", "0000000001899995100000000000", "0000000018999610000000000000", "0000000299972000000000000000", "0000003998300000000000000000", "0000049940000000000000000000", "0000595000000000000000000000", "0006610000000000000000000000", "0043000000000000000000000000"], "star": ["0000000000000000004894000000000000000000", "0000000000000000039999300000000000000000", "0000000000000000199999910000000000000000", "0000000000000000699999960000000000000000", "0000000000000002999999993000000000000000", "0000000000000008999999998000000000000000", "0000000000000059999999999500000000000000", "0112222333344599999999999954444333222210", "6999999999999999999999999999999999999996", "7999999999999999999999999999999999999998", "0389999999999999999999999999999999999840", "0003899999999999999999999999999999984000", "0000038999999999999999999999999998300000", "0000000379999999999999999999999830000000", "0000000004999999999999999999995000000000", "0000000005999999999999999999995000000000", "0000000009999999999999999999999100000000", "0000000049999999999999999999999400000000", "0000000089999999999999999999999800000000", "0000000299999999985115899999999930000000", "0000000699999996300000026999999960000000", "0000000999997410000000000037999990000000", "0000000597510000000000000000147850000000"], "comet": ["0000000245556887873000000000000000000000", "0000058999999999999830000000000000000000", "0000699999999999999997200000000000000000", "0048999999999999999999941000000000000000", "0599999999999999999999999610000000000000", "1999999999999999999999999981000000000000", "1999999999999999999999999998200000000000", "1999999999999999999999999999800000000000", "2999999999999999999999999999982000000000", "1999999999999999999999999999997000000000", "1999999999999999999999999999999600000000", "0179999999999999999999999999999960000000", "0002699999999999999999999988999995000000", "0000039999999999999999899998889999300000", "0000003899999999999999999999999999810000", "0000000036778999999999999999999899960000", "0000000000000135589999999999899878993000", "0000000000000000001257999999788997898100", "0000000000000000000000146899989999789600", "0000000000000000000000000046898889967920", "0000000000000000000000000000158876873660", "0000000000000000000000000000001576587441", "0000000000000000000000000000000004545510", "0000000000000000000000000000000000011100"], "walker": ["00015789861000000000", "00199999998000000000", "00049999999000000000", "00029999995000000000", "00019999982000000000", "00002448982000000000", "00000008999300000000", "00000069999900000000", "00000099999930000000", "00000299999950000000", "00000799999950000000", "00002999999970000000", "00008999999980000000", "00079999999960000000", "00099999999910000000", "00699999999700000000", "02999969999200000000", "01999908999630000000", "00799921799999620000", "00499940025899997410", "00199930000025899995", "00079930000000018991", "24699930000000059820", "99999940000000012000"], "runner": ["0000000026898720000000000000000000000", "0000000499999993000000000000000000000", "0000000179999997000000000000000000000", "0000000039999994000000000000000000000", "0000000007999993000000000000000000000", "0000000000446998665300000000000000000", "0000375100048999999995100000000000000", "0000799202899999999899972000000000000", "0000189649999999999203998000000000000", "0000006999526999999802992000000000000", "0000000230000799999977940000000000000", "0000000000000089999999700000000000000", "0000000000000018999999910000000000000", "0000000000000159999999920000000000000", "0000000000004999999999960000000000000", "0000000000379999999999997000000000000", "0000000005999979863479999632100000000", "0000000029995100000001589999985100000", "0000000069980000000000001346799986532", "0000000299600000000000000000001479997", "0000002894000000000000000000000019992", "4653359960000000000000000000000019960", "5899999910000000000000000000000018500", "0013589500000000000000000000000000000"], "dancer": ["00000000000000389985100000000000000000", "00000000000002999999700013100000000000", "00000000210007999999800079200000000000", "00000000683459999999800049400000000000", "00000000899999999999300008500000000000", "00000003899999999999410059000000000000", "00000000699999999999998795000000000000", "00000000189988999999934650000000000000", "00000000894000399999700000000000420000", "00000000591000069999500000000007997200", "00000000093000189999800000245589999920", "00000002781000799999952468999999999993", "00000058500002999999999999999999999970", "00263110001249999999999999999999999980", "04999988899999999999999999999999998310", "79999999999999999999999999999999995000", "59999999999999999999999999999999992000", "02311799999999999999999999999995200000", "00000021003899999999999999999930000000", "00000000000079979999999999944100000000", "00000000002798101453236518930000000000", "00000000004999100000000039992000000000", "00000000001518963000000028699320000000", "00000000000000232000000003017973000000"], "rider": ["0000000000069830000000000000000000000000", "0000000000399971110000000000000000000000", "0000420000068899998630000000000000000000", "0004998620000059999997000000000000000000", "0059999996300039969995000000000000000000", "1799999999974597589820000000000000000000", "8987756999999996899977677776520000000031", "1410122599999999999999999999995000005940", "0000000039999999999999999999999865699400", "0000000003999999999999999999992256640000", "0000000000799999999999999999970000000000", "0000000000499999999864699999500000000000", "0000000047689985311000499981000000000000", "0000000571396200000002894960000000000000", "0000002700275000003566510890000000000000", "0000003600004757764200016730000000000000", "0000000650000015820000663000000000000000", "0000000000000000000007500000000000000000", "0000000000000000000039200000000000000000"], "tower": ["0000000000015000000000000", "0000000000039000000000000", "0000000000299700000000000", "0000000004899961000000000", "0000000019999997000000000", "0000000069999999300000000", "0000000199999999600000000", "0000000028999996000000000", "0000000249999996320000000", "0000018999999999995000000", "0000019999999999997000000", "0000004799999999952000000", "0000000799999999850000000", "0000004989999998891000000", "0000008899999999886000000", "0000059999999999989200000", "0000198897999989659800000", "0000789998899989998850000", "0004957974999875933592000", "0019889998999999998888000", "0089664349998996445679500", "0593000004999920000016930", "3920000002999900000000792", "4400000003993200000000154"], "mountain": ["0000000000000000000175000000000000000000", "0000000000000000005999400000000000000000", "0000000000000000189999950000000000000000", "0000000000000001999999997212000000000000", "0000000000000005999999999999800000000000", "0000000000100029999999999999950000000000", "0000000005930089999999999999991000000000", "0000000289982699999999999999997000000000", "0000000999999999999999999999999600000000", "0000006999999999999999999999999940000000", "0000049999999999999999999999999994000000", "0000399999999999999999999999999999500000", "0002999999999999999999999999999999960000", "0008999999999999999999999999999999997100", "0179999999999999999999999999999999999930", "2999999999999999999999999999999999999995", "3677789999999999999999999999999999874100", "0000001222244555667778899998877651000000"]};
+var glow=document.getElementById('glow'),gx=glow.getContext('2d'),GW=0,GH=0,GFS=14,V=[],lastV=0;
+function sizeGlow(){var r=glow.getBoundingClientRect(),d=Math.min(2,window.devicePixelRatio||1);GW=r.width;GH=r.height;glow.width=Math.round(GW*d);glow.height=Math.round(GH*d);gx.setTransform(d,0,0,d,0,0);GFS=Math.max(7,parseFloat(getComputedStyle(document.body).fontSize)*0.7);}
+window.addEventListener('resize',sizeGlow);sizeGlow();
+function fromRows(rows){return {c:rows[0].length,r:rows.length,v:function(x,y){return (+rows[y][x])/9;}};}
+/* procedural shapes are drawn on a tiny canvas, one pixel per character cell (cells are taller than wide, so y is squashed) */
+function fromDraw(c,r,draw){var cv=document.createElement('canvas');cv.width=c;cv.height=r;var g=cv.getContext('2d');g.fillStyle='#fff';g.strokeStyle='#fff';g.scale(1,0.6);draw(g,c,r/0.6);var d=g.getImageData(0,0,c,r).data;return {c:c,r:r,v:function(x,y){return d[(y*c+x)*4+3]/255;}};}
+function shape(k){if(SHAPES[k])return fromRows(SHAPES[k]);if(k==='someone')return fromRows(SHAPES.bearer);return MAKE[k]?MAKE[k]():null;}
+var MAKE={
+  horse:function(){return fromRows(SHAPES.horse);},bird:function(){return fromRows(SHAPES.bird);},hands:function(){return fromRows(SHAPES.hands);},
+  camera:function(){return fromRows(SHAPES.camera);},someone:function(){return fromRows(SHAPES.bearer);},
+  moon:function(){return fromDraw(34,22,function(g,w,h){g.beginPath();g.arc(w/2,h/2,h*0.42,0,7);g.fill();g.globalCompositeOperation='destination-out';g.beginPath();g.arc(w/2+h*0.2,h/2-h*0.08,h*0.38,0,7);g.fill();});},
+  planet:function(){return fromDraw(52,24,function(g,w,h){g.beginPath();g.arc(w/2,h/2,h*0.26,0,7);g.fill();g.save();g.translate(w/2,h/2);g.rotate(-0.35);g.lineWidth=h*0.05;g.beginPath();g.ellipse(0,0,w*0.46,h*0.11,0,0,7);g.stroke();g.restore();});},
+  eye:function(){return fromDraw(48,16,function(g,w,h){g.lineWidth=h*0.06;g.beginPath();g.moveTo(w*0.04,h/2);g.quadraticCurveTo(w/2,-h*0.12,w*0.96,h/2);g.quadraticCurveTo(w/2,h*1.12,w*0.04,h/2);g.stroke();g.beginPath();g.arc(w/2,h/2,h*0.2,0,7);g.fill();});},
+  word:function(wd){var c=Math.min(70,wd.length*8+4);return fromDraw(c,11,function(g,w,h){g.font='900 '+h*0.9+'px Archivo, "Helvetica Neue", Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(wd.toUpperCase(),w/2,h*0.54,w*0.96);});}
+};
+var KEYS=[[/crab/,'crab'],[/cactus/,'cactus'],[/telescope/,'telescope'],[/church bell|\bbell/,'bell'],[/clock/,'clock'],[/lamp|bulb/,'bulb'],[/runs out|timer/,'hourglass'],[/lightning/,'lightning'],[/mountain/,'mountain'],[/hand by hand/,'hand'],[/\bhand/,'hands'],[/race|jockey/,'rider'],[/horse|gallop/,'horse'],[/peace|dove/,'dove'],[/owl/,'owl'],[/moth|butterfl/,'moth'],[/whale/,'whale'],[/octopus/,'octopus'],[/fish/,'fish'],[/\bdog/,'dog'],[/\bcat\b|cat flap/,'cat'],[/rabbit/,'rabbit'],[/deer/,'deer'],[/snail/,'snail'],[/\bbat\b/,'bat'],[/spider|crawler/,'spider'],[/crab/,'crab'],[/turtle/,'turtle'],[/elephant/,'elephant'],[/desert|camel/,'camel'],[/rooster/,'rooster'],[/swan/,'swan'],[/flamingo/,'flamingo'],[/parrot/,'parrot'],[/rose/,'rose'],[/tree|forest/,'tree'],[/palm/,'palm'],[/mushroom/,'mushroom'],[/cactus/,'cactus'],[/moon|tide/,'moon'],[/planet|observatory/,'planet'],[/satellite/,'satellite'],[/rocket|launch/,'rocket'],[/telescope/,'telescope'],[/letter|written|writes/,'writing'],[/hearing/,'ear'],[/step counter|steps/,'footprints'],[/\bkey\b/,'key'],[/lock/,'lock'],[/clock/,'clock'],[/runs out|timer/,'hourglass'],[/bell/,'bell'],[/lamp|bulb/,'bulb'],[/train|timetable/,'train'],[/sailboat|sail/,'sailboat'],[/anchor/,'anchor'],[/umbrella|rain\b/,'umbrella'],[/bicycle|bike/,'bicycle'],[/guitar/,'guitar'],[/violin|orchestra/,'violin'],[/playlist|headphone|listen/,'headphones'],[/\bcut\b|scissors/,'scissors'],[/\btea\b|coffee|cup/,'teacup'],[/wine|vineyard/,'wine'],[/chair|seats/,'chair'],[/wave|buoy/,'wave'],[/snow/,'snowflake'],[/cloud/,'cloud'],[/lightning/,'lightning'],[/\bstar/,'star'],[/comet/,'comet'],[/pedestrian|walk/,'walker'],[/marathon|running|run\b/,'runner'],[/dance/,'dancer'],[/tower/,'tower'],[/mountain/,'mountain'],[/bird/,'bird'],[/hand/,'hands'],[/camera|photo|frame|lens|subtitle|film/,'camera'],[/someone|somebody|person|keeper|nobody|kid/,'someone'],[/watch|seen|look|eye/,'eye']];
+var SKIPW={there:1,their:1,which:1,about:1,again:1,still:1,until:1,always:1,doesn:1,nobody:1,something:1,someone:1,somebody:1,anyone:1,thousand:1};
+function spawn(text,force){return;
+  var now=performance.now();if(V.length>=(force?4:2)||(!force&&now-lastV<7000)||!GW)return;
+  var low=text.toLowerCase(),kind=null;for(var i=0;i<KEYS.length;i++)if(KEYS[i][0].test(low)){kind=KEYS[i][1];break;}
+  var m;
+  if(kind&&(force||Math.random()<0.55))m=shape(kind);
+  else if(force||Math.random()<0.14){var any=Object.keys(SHAPES).concat(['eye']);m=shape(any[(Math.random()*any.length)|0]);}
+  else return;
+  if(!m)return;
+  var cw=GFS*0.6,lh=GFS,mx=Math.max(16,GW*0.06),tw=GW*(GW<700?0.55+Math.random()*0.25:0.24+Math.random()*0.16);
+  m=scaled(m,Math.min(tw/(m.c*cw),(GH*0.5)/(m.r*lh)));var w=m.c*cw,h=m.r*lh;
+  /* try a few spots and keep the one furthest from anything already showing */
+  var best=null,bd=-1;
+  for(var tr=0;tr<10;tr++){var px=mx+Math.random()*Math.max(1,GW-w-2*mx),py=GH*0.05+Math.random()*Math.max(1,GH*0.64-h),cx=px+w/2,cy=py+h/2,dmin=1e9;
+    V.forEach(function(o){var ox=o.x0+o.m.c*cw/2,oy=o.y0+o.m.r*lh/2;dmin=Math.min(dmin,Math.hypot(cx-ox,cy-oy));});
+    if(dmin>bd){bd=dmin;best=[px,py];}}
+  var x0=best[0],y0=best[1];
+  V.push({m:m,letters:text.replace(/\s+/g,''),x0:x0,y0:y0,t0:now,peak:0.09+Math.random()*0.06,ph:Math.random()*9,IN:4200,HOLD:9000+Math.random()*5000,OUT:6000});
+  lastV=now;
+}
+function scaled(m,k){var c=Math.max(4,Math.round(m.c*k)),r=Math.max(3,Math.round(m.r*k));return {c:c,r:r,v:function(x,y){var fx=x/k,fy=y/k,x0=Math.min(m.c-1,Math.floor(fx)),y0=Math.min(m.r-1,Math.floor(fy)),x1=Math.min(m.c-1,x0+1),y1=Math.min(m.r-1,y0+1),tx=fx-x0,ty=fy-y0;
+  return (m.v(x0,y0)*(1-tx)+m.v(x1,y0)*tx)*(1-ty)+(m.v(x0,y1)*(1-tx)+m.v(x1,y1)*tx)*ty;}};}
+function hash2(x,y){var h=Math.sin(x*127.1+y*311.7)*43758.5453;return h-Math.floor(h);}
+function drawGlow(now){return;
+  gx.clearRect(0,0,GW,GH);
+  if(V.length){
+    gx.font=GFS+'px "JetBrains Mono", ui-monospace, monospace';gx.textBaseline='top';
+    var cw=GFS*0.6,lh=GFS;
+    V=V.filter(function(v){
+      var t=now-v.t0,env=t<v.IN?t/v.IN:t<v.IN+v.HOLD?1:1-(t-v.IN-v.HOLD)/v.OUT;if(env<=0)return false;env=env*env*(3-2*env);
+      var s=t/1000,fl=RM?1:0.8+0.1*Math.sin(s*5.3+v.ph)+0.07*Math.sin(s*11.9+v.ph*2)+0.05*Math.sin(s*23.1)+0.05*(Math.random()-0.5);
+      var step=RM?0:Math.floor(s*7),m=v.m,k=0,L=v.letters.length||1;
+      for(var y=0;y<m.r;y++)for(var x=0;x<m.c;x++){
+        var d=m.v(x,y);if(d<0.18)continue;
+        var dx=(x/(m.c-1)-0.5)*2,dy=(y/(m.r-1)-0.5)*2,fe=Math.max(0,1-Math.sqrt(dx*dx*0.9+dy*dy*0.9));fe=Math.min(1,fe*1.7);fe=fe*fe*(3-2*fe);
+        var a=v.peak*env*fl*fe*(0.45+0.55*d)*(0.78+0.22*hash2(x+step*7,y+v.ph));
+        var ch=v.letters[k++%L];if(a<0.004)continue;
+        var q=Math.min(1,d*fe*1.15),rr=Math.round(200+55*q),gg=Math.round(52+160*q*q),bb=Math.round(28+120*q*q*q);
+        gx.fillStyle='rgba('+rr+','+gg+','+bb+','+a.toFixed(3)+')';gx.fillText(ch,v.x0+x*cw,v.y0+y*lh);
+      }
+      return true;
+    });
+  }
+  requestAnimationFrame(drawGlow);
+}
+requestAnimationFrame(drawGlow);
+document.addEventListener('keydown',function(e){if(e.key==='.'&&!e.metaKey&&!e.ctrlKey){var rows=feed.querySelectorAll('.row .x');if(rows.length)spawn(rows[rows.length-1-((Math.random()*Math.min(4,rows.length))|0)].textContent,true);}});
+/* one every 30 to 60 seconds, made from whatever line just went past */
+var nextAuto=performance.now()+30000+Math.random()*30000;
+setInterval(function(){var t=performance.now();if(t<nextAuto||document.hidden)return;var rows=feed.querySelectorAll('.row .x');if(rows.length)spawn(rows[rows.length-1].textContent,true);nextAuto=t+30000+Math.random()*30000;},1000);
+
+/* ---------- the stream ---------- */
+var MAX=40,last={},lastEdge=0,lastOurs=0,sinceNote=0;
+function row(cls,time,city,text){
+  var r=document.createElement('div');r.className='row'+(cls?' '+cls:'');
+  if(cls==='note'){var x=document.createElement('span');x.className='x';r.appendChild(x);feed.appendChild(r);age();return x;}
+  var a=document.createElement('span');a.className='t';a.textContent=time;
+  var b=document.createElement('span');b.className='c';var sl=city.indexOf('/');b.textContent=sl<0?city:city.slice(0,sl);if(sl>=0){var rl=document.createElement('span');rl.className='r';rl.textContent=city.slice(sl);b.appendChild(rl);}
+  var x2=document.createElement('span');x2.className='x';r.appendChild(a);r.appendChild(b);r.appendChild(x2);feed.appendChild(r);
+  age();
+  return x2;
+}
+/* the newest lines stay lit; older ones fade as they rise, then go */
+var KEEP=6,FADE=7;
+function age(){
+  var rows=feed.children,n=rows.length;
+  for(var i=0;i<n;i++){var k=n-1-i,o=k<KEEP?1:Math.max(0,1-(k-KEEP+1)/FADE);rows[i].style.opacity=o.toFixed(2);}
+  while(feed.children.length>KEEP+FADE+1)feed.removeChild(feed.firstChild);
+}
+var cur=document.createElement('span');cur.className='cur';
+function type(el,text,cps){
+  return new Promise(function(res){
+    if(RM){el.textContent=text;res();return;}
+    var i=0;el.appendChild(cur);
+    (function step(){if(i>=text.length){res();return;}el.insertBefore(document.createTextNode(text[i++]),cur);setTimeout(step,1000/cps*(0.6+Math.random()*0.8));})();
+  });
+}
+/* ---------- long jobs that come back further along ---------- */
+var JOBS=[
+ {t:'a novel is being translated. chapter {n} of {max}.',a:' the jokes are the hard part.',max:31,step:[1,3],done:'the novel is translated. someone will read it first thing.'},
+ {t:'an old film is being cleaned. frame {n} of {max}.',a:' the scratches go first.',max:86400,step:[1800,5200],done:'the film is clean. it looks like the year it was made.'},
+ {t:'the buses are rescheduled for snow. route {n} of {max}.',max:212,step:[9,28],done:'every bus has a new timetable. it will snow at seven.'},
+ {t:'a dictionary for a language with 900 speakers. entry {n}.',a:' there are eleven words for rain.',max:4000,step:[40,140],done:'the dictionary has 4,000 words. the speakers have more.'},
+ {t:'someone’s old photos are being restored. {n} of {max}.',a:' most are of the same dog.',max:1300,step:[30,95],done:'all 1,300 photos restored. it was a good dog.'},
+ {t:'a harvest forecast for six valleys. valley {n} of {max}.',max:6,step:[1,1],done:'six valleys, all fine. the rain comes thursday.'},
+ {t:'a city’s street trees are counted from the air. {n} of {max}.',a:' the oaks are winning.',max:48000,step:[2000,6000],done:'48,000 trees, counted. the oaks won.'},
+ {t:'a choir’s concert is mixed. song {n} of {max}.',a:' the altos asked to be louder.',max:14,step:[1,2],done:'the concert is mixed. the altos are louder.'},
+ {t:'a museum’s letters are transcribed. letter {n} of {max}.',a:' most are about the weather.',max:2600,step:[60,180],done:'2,600 letters, transcribed. it rained a lot in 1890.'},
+ {t:'a ferry’s winter timetable. sailing {n} of {max}.',max:96,step:[4,11],done:'the winter timetable is done. the sea gets the final say.'},
+ {t:'a radio archive is digitised. tape {n} of {max}.',a:' tape 212 is just someone laughing.',max:740,step:[15,45],done:'740 tapes, saved. the laughing one is everyone’s favourite.'},
+ {t:'a hospital’s scans are checked overnight. {n} of {max}.',max:380,step:[12,40],done:'380 scans checked. the doctors start at eight.'},
+ {t:'a family cookbook is typed up. recipe {n} of {max}.',a:' the measurements are “some” and “enough”.',max:212,step:[6,19],done:'212 recipes, typed. “enough” is now 200 grams.'},
+ {t:'a forest’s camera traps are sorted. photo {n} of {max}.',a:' mostly deer. one very surprised badger.',max:9000,step:[250,800],done:'9,000 photos sorted. the badger has a name now.'}
+];
+var threads=[],lastThread=0,jobBag=[];
+function newThread(dark){if(!jobBag.length)jobBag=JOBS.slice();var j=jobBag.splice((Math.random()*jobBag.length)|0,1)[0];
+  return {j:j,n:Math.max(1,Math.round(j.max*(0.05+Math.random()*0.3))),city:rnd(dark).c};}
+function fmtN(n){return n.toLocaleString('en-US');}
+function threadLine(th){var j=th.j;
+  if(th.n>=j.max)return j.done;
+  var line=j.t.replace('{n}',fmtN(th.n)).replace('{max}',fmtN(j.max))+(th.seen?'':(j.a||''));th.seen=true;return line;}
+var marks={},SEEDING=false;
+function pick(){
+  var now=Date.now(),opts=CITIES.map(function(c){var t=local(c[1]);return {c:c,t:t,p:phase(t.h)};});
+  /* exact edges, by the real clock: a countdown to first light, then the handover; cities joining at 22:00 */
+  var day=NOW().toISOString().slice(0,10);
+  if(!SEEDING){
+    var kinds=[
+      {k:'c',test:function(t){return t.h===5&&t.m>=55;},text:function(t){var n=60-t.m;return 'first light in '+n+(n===1?' minute.':' minutes.');}},
+      {k:'d',test:function(t){return t.h===6&&t.m<3;},text:function(){return 'first light. it hands over.';}},
+      {k:'j',test:function(t){return t.h===22&&t.m<3;},text:function(){return 'joins the night shift.';}}
+    ];
+    for(var kk=0;kk<kinds.length;kk++){var K=kinds[kk],hit=opts.filter(function(o){return K.test(o.t)&&!marks[o.c[0]+K.k+day];});
+      if(!hit.length)continue;
+      hit.forEach(function(o){marks[o.c[0]+K.k+day]=1;});
+      var home=hit.filter(function(o){return o.c[0]===HOME;})[0];
+      if(home&&K.k==='j')return {cls:'ours',time:home.t.s,city:'kaverne/people',text:'\u2192 agents: it\u2019s yours. see you at six.'};
+      if(home&&K.k==='d')return {cls:'ours',time:home.t.s,city:'kaverne/review',text:'\u2192 people: it\u2019s on the desk. over to you.'};
+      var first=hit[0],others=hit.slice(1).map(function(o){return o.c[0];});
+      var tail=others.length?'  ('+(others.length===1?others[0]:others.slice(0,-1).join(', ')+' and '+others[others.length-1])+' too)':'';
+      return {cls:'edge',time:first.t.s,city:first.c[0],text:K.text(first.t)+tail};
+    }
+  }
+  /* a long job, every so often, picked up where it left off */
+  var darkOpts=opts.filter(function(o){return o.p==='night';});
+  if(now-lastThread>25000&&Math.random()<0.3&&darkOpts.length){
+    lastThread=now;while(threads.length<3)threads.push(newThread(darkOpts));
+    var th=rnd(threads),tz=CITIES.filter(function(c){return c===th.city;})[0],tt=local(tz[1]);
+    var line=threadLine(th);
+    if(th.n>=th.j.max)threads.splice(threads.indexOf(th),1);else th.n=Math.min(th.j.max,th.n+th.j.step[0]+Math.round(Math.random()*(th.j.step[1]-th.j.step[0])));
+    return {cls:'',time:tt.s,city:th.city[0],text:line};
+  }
+  /* after a while in the dark, the cavern starts seeing things */
+  if(!SEEDING&&watched>60&&now-lastDrift>15000&&Math.random()<0.16){lastDrift=now;var lh=local(HOMETZ);return {cls:'drift',time:lh.s,city:'here',text:fresh(DRIFT,'d')};}
+  /* ours, every so often */
+  if(!SEEDING){var HW=labHarvest(now);if(HW){lastOurs=now;var hh=opts.filter(function(o){return o.c[0]===HOME;})[0];return {cls:'ours',time:hh.t.s,city:'kaverne/'+HW.role,text:HW.text,harvest:true};}}
+  if(now-lastOurs>(CL==='warm'?25000+Math.random()*15000:90000+Math.random()*90000)){lastOurs=now;var h=opts.filter(function(o){return o.c[0]===HOME;})[0],w=ours();return {cls:'ours',time:h.t.s,city:'kaverne'+(w.role?'/'+w.role:''),text:w.text};}
+  /* the edges of the night: dawn and dusk, wherever they are right now */
+  var edges=opts.filter(function(o){return o.p==='dawn'||o.p==='dusk';});
+  if(edges.length&&now-lastEdge>11000&&Math.random()<0.35){lastEdge=now;var e=rnd(edges);return {cls:'edge',time:e.t.s,city:e.c[0],text:fresh(e.p==='dawn'?DAWN:DUSK,e.p)};}
+  var dark=opts.filter(function(o){return o.p==='night'&&(!last[o.c[0]]||now-last[o.c[0]]>20000);});
+  if(!dark.length)dark=opts.filter(function(o){return o.p==='night';});
+  var o=rnd(dark);last[o.c[0]]=now;return {cls:'',time:o.t.s,city:o.c[0],text:fresh(NIGHT,'n')};
+}
+function note(){
+  var opts=CITIES.map(function(c){return {c:c,p:phase(local(c[1]).h)};}),dark=opts.filter(function(o){return o.p==='night';});
+  var d=NOW(),utc=d.getUTCHours()+d.getUTCMinutes()/60,mid=((24-utc)*15+540)%360-180;
+  var region=mid<-120?'the pacific':mid<-30?'the americas':mid<-10?'the atlantic':mid<40?'europe and africa':mid<75?'the gulf':mid<100?'india':mid<145?'east asia':'the western pacific';
+  return rnd(['the middle of the night is over '+region+' now.','the dark is moving west at about 1,670 km an hour.','night in '+dark.length+' cities. the shift is never empty.','somewhere, it’s 03:00. it always is.']);
+}
+/* ================= CATCH LAB: glowworm threads that catch what drifts up from the stream ================= */
+var CLABS=[
+ ['combo','words flutter up like moths, hang from the threads as tags, and every so often an agent takes one down into its line.'],
+ ['spell','each thread catches one word, letter by letter, stacked downward. read a thread top to bottom. a new word knocks the old one loose.'],
+ ['web','when letters from the same line land on different threads, a strand of silk ties those threads together. a web spreads across the ceiling.'],
+ ['lure','brighter glowworms draw more letters, and every catch makes them brighter. a few become beacons; the rest stay dim.'],
+ ['warm','the crew’s own lines send letters up too, in ember. the ceiling mixes cool letters from the world with warm ones from the cave.'],
+ ['long','every catch lengthens its thread a little. the busiest threads slowly reach down toward the stream.']
+]
+var CV=Math.max(0,Math.min(CLABS.length-1,(+(new URLSearchParams(location.search).get('v'))||1)-1)),CL=CLABS[CV][0];
+var LON={};CITIES.forEach(function(c){LON[c[0]]=c[2];});
+var th=document.getElementById('threads'),tx=th.getContext('2d'),TW=0,TH=0,W=[],FLY=[],DRIPS=[],lastHarvest=0,HV=null,typing={r:null,n:0};
+function sizeThreads(){var d=Math.min(2,window.devicePixelRatio||1);TW=th.clientWidth;TH=th.clientHeight;th.width=Math.round(TW*d);th.height=Math.round(TH*d);tx.setTransform(d,0,0,d,0,0);}
+window.addEventListener('resize',sizeThreads);sizeThreads();
+function geo(){var so=th.getBoundingClientRect(),tp=document.querySelector('.top').getBoundingClientRect(),fr=feed.getBoundingClientRect();
+  return {so:so,bx:fr.left-so.left,bw:fr.width,top:tp.bottom-so.top+12,room:Math.max(60,(fr.top-so.top)+fr.height*0.3-(tp.bottom-so.top+12)),fs:parseFloat(getComputedStyle(document.body).fontSize),lh:parseFloat(getComputedStyle(document.body).fontSize)*1.7};}
+function cx_(G,lon){return G.bx+(lon+180)/360*G.bw;}
+function hsh(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0)/4294967296;}
+function worm(x,len,extra){var w={x:x,len:len,ph:Math.random()*9,sw:0.4+Math.random()*0.8,b:0.4,drops:[]};for(var k in extra)w[k]=extra[k];return w;}
+function nearest(x){var best=null,bd=1e9;W.forEach(function(w){var d=Math.abs(w.x-x);if(d<bd){bd=d;best=w;}});return best;}
+function glowAt(x,y,r,a){if(a<=0.004)return;var g=tx.createRadialGradient(x,y,0,x,y,r*5);g.addColorStop(0,'rgba(170,230,245,'+a.toFixed(3)+')');g.addColorStop(1,'rgba(170,230,245,0)');tx.fillStyle=g;tx.beginPath();tx.arc(x,y,r*5,0,7);tx.fill();
+  tx.fillStyle='rgba(225,248,255,'+Math.min(1,a*1.5).toFixed(3)+')';tx.beginPath();tx.arc(x,y,r*0.75,0,7);tx.fill();}
+/* a caught letter or word: a little glow behind it, like a droplet catching light */
+function glyph(G,t,x,y,a,big,warm){if(a<=0.01)return;var f=G.fs*(big?0.74:0.72);tx.font=f+'px "JetBrains Mono", monospace';tx.textAlign='center';tx.textBaseline='middle';
+  var g=tx.createRadialGradient(x,y,0,x,y,f*(big?0.9+t.length*0.3:0.9));var gc=warm?'240,140,70':'150,215,235';g.addColorStop(0,'rgba('+gc+','+(0.18*a).toFixed(3)+')');g.addColorStop(1,'rgba('+gc+',0)');tx.fillStyle=g;tx.beginPath();tx.arc(x,y,f*(big?0.9+t.length*0.3:0.9),0,7);tx.fill();
+  tx.fillStyle=warm?'rgba(250,190,140,'+a.toFixed(3)+')':'rgba(215,240,248,'+a.toFixed(3)+')';tx.fillText(t,x,y);tx.textAlign='left';tx.textBaseline='alphabetic';}
+var STOPW={that:1,this:1,with:1,from:1,into:1,they:1,them:1,their:1,there:1,which:1,about:1,again:1,still:1,until:1,always:1,nobody:1,anyone:1,someone:1,somebody:1,something:1,every:1,where:1,while:1,what:1,when:1,just:1,than:1,then:1,also:1,once:1,only:1,more:1,most:1,over:1,after:1,before:1,doesn:1,isn:1,won:1,itself:1,hour:1,night:1,tonight:1,being:1,these:1,those:1,would:1,could:1,should:1,other:1,another:1,under:1,gets:1,gives:1,makes:1,comes:1,goes:1,turns:1,keeps:1,takes:1,finally:1,enough:1,around:1,people:1,thing:1,things:1,whose:1,twice:1,decides:1,first:1,last:1,each:1,same:1,already:1,less:1,many:1,much:1,some:1,like:1,does:1,done:1,ones:1};
+function aWord(text){var w=(text||'').toLowerCase().replace(/[’']s\b/g,'').replace(/[^a-z\s-]/g,' ').split(/\s+/).filter(function(x){return x.length>=4&&x.length<=9&&!STOPW[x];});return w.length?w[(Math.random()*w.length)|0]:null;}
+function letters(text,n){var t=(text||'').replace(/[^a-z]/g,''),out=[];for(var k=0;k<n&&t.length;k++)out.push(t[(Math.random()*t.length)|0]);return out;}
+
+function setup(){var G=geo();
+  if(CL==='home'){W=CITIES.map(function(c){var h=hsh(c[0]);return worm(cx_(G,c[2])+(h-0.5)*6,18+h*G.room*0.7,{city:c[0]});});}
+  else{W=[];var n=CL==='combo'?18:CL==='spell'?16:30;for(var i=0;i<n;i++){var x=G.bx+(i+0.5+(Math.random()-0.5)*0.7)/n*G.bw;W.push(worm(x,24+Math.pow(Math.random(),1.4)*G.room*0.7));}}}
+setTimeout(setup,200);window.addEventListener('resize',function(){setTimeout(setup,60);});
+
+/* something drifts up from a row toward a thread */
+function launch(txt,from,w,big,mode,opt){if(!w)return;var f={t:txt,x0:from[0],y0:from[1],w:w,t0:performance.now(),big:big,mode:mode||'drift',seed:Math.random()*9};for(var k in (opt||{}))f[k]=opt[k];FLY.push(f);return f;}
+var STRANDS=[],wordId=0;
+/* lure: brightness pulls harder than distance */
+function lured(x){var best=null,bs=-1;W.forEach(function(w){var sc=(0.15+w.b*w.b)/(1+Math.abs(w.x-x)/140);if(sc>bs){bs=sc;best=w;}});return best;}
+function rowPoint(G,r,f){var x=r.querySelector('.x');if(!x)return null;var b=x.getBoundingClientRect();return [b.left-G.so.left+(f===undefined?Math.random():f)*Math.min(b.width,720),b.top-G.so.top+G.lh*0.35];}
+function labRow(r,e){if(SEEDING)return;r.dataset.text=e.text||'';r.dataset.city=e.city||'';
+  if(e.cls==='ours'&&CL!=='warm')return;
+  setTimeout(function(){if(!r.isConnected)return;var G=geo();
+    if(CL==='combo'){if(Math.random()<0.75){var wd=aWord(e.text),p=rowPoint(G,r);if(wd&&p)launch(wd,p,nearest(p[0]),true,'moth');}}
+    else if(CL==='spell'){var wd2=aWord(e.text);if(!wd2||wd2.length>7)return;var p2=rowPoint(G,r,0.3);if(!p2)return;
+      var free=W.slice().sort(function(a,b){return (a.drops.length-b.drops.length)||(Math.abs(a.x-p2[0])-Math.abs(b.x-p2[0]));})[0];
+      free.drops.forEach(function(d){if(!d.fall)d.fall={t0:performance.now()};});var id=++wordId,step=G.fs*0.95,need=18+wd2.length*step;if(free.len<need)free.len=need;
+      wd2.split('').forEach(function(ch,k){setTimeout(function(){var pp=rowPoint(G,r,0.2+k*0.08);if(pp)launch(ch,pp,free,false,'drift',{p:Math.min(0.98,(14+k*step)/free.len),word:id});},k*330);});}
+    else if(CL==='web'){var ls=letters(e.text,3),row_=++wordId;ls.forEach(function(ch,k){setTimeout(function(){var pp=rowPoint(G,r,Math.random());if(pp)launch(ch,pp,nearest(pp[0]),false,'drift',{row:row_});},k*380);});}
+    else if(CL==='lure'){letters(e.text,2).forEach(function(ch,k){setTimeout(function(){var pp=rowPoint(G,r);if(pp)launch(ch,pp,lured(pp[0]),false,'moth');},k*420);});}
+    else if(CL==='warm'||CL==='long'){letters(e.text,e.cls==='ours'?3:1+((Math.random()*2)|0)).forEach(function(ch,k){setTimeout(function(){var pp=rowPoint(G,r);if(pp)launch(ch,pp,nearest(pp[0]),false,'drift',{warm:e.cls==='ours'});},k*420);});}
+  },1400);}
+/* harvest: an agent takes a word down from the ceiling and uses it */
+var HTPL=[['words','→ type: “{w}”. off the ceiling. that’s the title.'],['sound','→ cut: something that sounds like “{w}”, under the opening.'],['colour','→ look: the colour of “{w}”. trying it.'],['type','→ design: setting “{w}” in the serif. it wants to be big.'],['review','→ everyone: “{w}”. keep that word.'],['boards','→ cut: first frame: “{w}”, close up.'],['score','→ sound: a melody that goes “{w}”. four notes.']];
+function labHarvest(now){if(CL!=='combo'||now-lastHarvest<26000+Math.random()*10000)return null;var pool=[];W.forEach(function(w){w.drops.forEach(function(d){if(!d.fall&&d.big)pool.push({w:w,d:d});});});if(!pool.length)return null;
+  lastHarvest=now;var pk=pool[(Math.random()*pool.length)|0],tp=HTPL[(Math.random()*HTPL.length)|0];HV=pk;return {role:tp[0],text:tp[1].replace('{w}',pk.d.t)};}
+function labUsedWord(agentRow){if(!HV)return;var d=HV.d,w=HV.w;d.fall={t0:performance.now(),to:agentRow};HV=null;}
+
+function drawLab(now){tx.clearRect(0,0,TW,TH);var G=geo();
+  /* sparks: letters flying off the cursor while the newest line types */
+  if(CL==='sparks'){var newest=feed.lastElementChild,xs=newest&&newest.querySelector('.x');if(xs&&!newest.classList.contains('ours')){var n=xs.textContent.length;if(typing.r!==newest){typing={r:newest,n:n};}else if(n>typing.n){var add=xs.textContent.slice(typing.n,n).replace(/[^a-z]/g,'');typing.n=n;
+      if(add&&Math.random()<0.16){var cur=newest.querySelector('.cur');var cb=(cur||xs).getBoundingClientRect();var p=[cb.left-G.so.left,cb.top-G.so.top+4];launch(add[0],p,nearest(p[0]),false,'spark');}}}}
+  STRANDS.forEach(function(st){var sa=RM?0:Math.sin(now/1700*st.a.sw+st.a.ph)*2,sb=RM?0:Math.sin(now/1700*st.b.sw+st.b.ph)*2,ax=st.a.x+sa*st.pa,ay=G.top+st.pa*st.a.len,bx=st.b.x+sb*st.pb,by=G.top+st.pb*st.b.len,fresh=Math.max(0,1-(now-st.t0)/3000);
+    tx.strokeStyle='rgba(170,220,235,'+(0.12+0.35*fresh).toFixed(3)+')';tx.lineWidth=1;tx.beginPath();tx.moveTo(ax,ay);tx.quadraticCurveTo((ax+bx)/2,Math.max(ay,by)+Math.abs(bx-ax)*0.12,bx,by);tx.stroke();});
+  W.forEach(function(w){var sway=RM?0:Math.sin(now/1700*w.sw+w.ph)*2,x=w.x+sway,tip=G.top+w.len;w.b+=((CL==='lure'?(w.keep||0.15):0.4)-w.b)*0.01;
+    tx.strokeStyle='rgba(170,220,235,'+(0.08+0.12*w.b).toFixed(3)+')';tx.lineWidth=1;tx.beginPath();tx.moveTo(w.x,G.top);tx.lineTo(x,tip);tx.stroke();
+    w.drops=w.drops.filter(function(d){var yy=G.top+d.p*w.len,xx=w.x+(x-w.x)*d.p+d.o;
+      if(d.fall){var age=now-d.fall.t0;if(d.fall.to){if(!d.fall.to.isConnected)return false;var xt=d.fall.to.querySelector('.x'),tb=xt?xt.getBoundingClientRect():null;if(!tb)return false;var tx1=tb.left-G.so.left+d.t.length*G.fs*0.3,ty1=tb.top-G.so.top+G.lh*0.4,pp=Math.min(1,age/1300);pp=pp*pp;
+          glyph(G,d.t,xx+(tx1-xx)*pp,yy+(ty1-yy)*pp,0.95*(pp<1?1:Math.max(0,1-(age-1300)/500)),d.big);if(pp>=1)tx.strokeStyle='rgba(0,0,0,0)';return age<1800;}
+        var a=(now-d.fall.t0)/1800;if(a>1)return false;glyph(G,d.t,xx,yy+a*a*160,0.6*(1-a),d.big);return true;}
+      glyph(G,d.t,xx,yy,(d.big?0.72:0.6)+0.25*Math.sin(now/800+d.p*9),d.big,d.warm);return true;});
+    glowAt(x,tip,CL==='lure'?1.1+w.b*1.8:1.5,(0.25+0.55*w.b)*(0.82+0.18*Math.sin(now/1100+w.ph)));
+  });
+  /* in flight */
+  FLY=FLY.filter(function(f){var age=now-f.t0,dur=f.mode==='moth'?4200:f.mode==='spark'?1700:2600;if(!f.w)return false;
+    if(f.p===undefined){var held=f.w.drops.filter(function(d){return !d.fall;});f.p=f.big?Math.min(0.95,0.3+0.24*held.length):0.22+Math.random()*0.72;}
+    var p=Math.min(1,age/dur),e2=p*p*(3-2*p),xt=f.w.x+(f.big?0:(Math.random()-0.5)*0),yt=G.top+f.p*f.w.len,x,y;
+    if(f.mode==='moth'){var q=Math.min(1,p/0.7),eq=q*q*(3-2*q);x=f.x0+(xt-f.x0)*eq+Math.sin(age/170+f.seed)*14*(1-q)+Math.sin(age/430+f.seed*2)*22*(1-q);y=f.y0+(yt-f.y0)*eq+Math.cos(age/210+f.seed)*10*(1-q);
+      if(p>0.7){var o=(p-0.7)/0.3,rad=16*(1-o);x=xt+Math.cos(age/160+f.seed)*rad;y=yt+Math.sin(age/160+f.seed)*rad*0.6;}}
+    else if(f.mode==='spark'){x=f.x0+(xt-f.x0)*e2+Math.sin(age/90+f.seed)*4*(1-p);y=f.y0+(yt-f.y0)*(1-Math.pow(1-p,2.2));}
+    else{x=f.x0+(xt-f.x0)*e2+Math.sin(age/240+f.seed)*6*(1-p);y=f.y0+(yt-f.y0)*e2;}
+    glyph(G,f.t,x,y,0.35+0.5*p,f.big,f.warm);
+    if(p>=1){f.w.drops.push({t:f.t,p:f.p,o:f.big?0:(Math.random()-0.5)*3,big:f.big,warm:f.warm,word:f.word});f.w.b=Math.min(1,f.w.b+(CL==='lure'?0.18:0.45));
+      if(CL==='lure')f.w.keep=Math.min(1,(f.w.keep||0.15)+0.12);
+      if(CL==='long'){var G3=geo();f.w.len=Math.min(G3.room*1.5,f.w.len+7);}
+      if(CL==='web'&&f.row){var mate=null;FLY.concat([]).forEach(function(){});for(var si=W.length-1;si>=0;si--){var ww=W[si];if(ww===f.w)continue;var hit=ww.drops.filter(function(d){return d.row===f.row&&!d.fall;})[0];if(hit){mate={w:ww,p:hit.p};break;}}
+        f.w.drops[f.w.drops.length-1].row=f.row;if(mate){STRANDS.push({a:f.w,b:mate.w,pa:f.p,pb:mate.p,t0:now});if(STRANDS.length>70)STRANDS.shift();}}
+      var held2=f.w.drops.filter(function(d){return !d.fall;}),cap=f.big?3:CL==='spell'?7:CL==='lure'?Math.round(3+(f.w.keep||0.15)*10):CL==='long'?12:6;
+      if(held2.length>cap){if(CL==='dew'){var low=held2.reduce(function(a,b){return b.p>a.p?b:a;});var nw=feed.lastElementChild;low.fall={t0:now,to:nw&&!nw.classList.contains('ours')?nw:null};if(!low.fall.to)low.fall.to=null;}
+        else{held2[0].fall={t0:now};}}
+      return false;}
+    return true;});
+  requestAnimationFrame(drawLab);}
+requestAnimationFrame(drawLab);
+
+(function(){var el=document.getElementById('labp');el.innerHTML='<span class="labn">'+CLABS.map(function(l,i){return '<a href="?v='+(i+1)+'"'+(i===CV?' class="on"':'')+'>'+(i+1)+' '+l[0]+'</a>';}).join('  ')+'</span><span class="labd">'+CLABS[CV][1]+'</span>';
+  document.addEventListener('keydown',function(e){var n=+e.key;if(n>=1&&n<=CLABS.length&&!e.metaKey&&!e.ctrlKey)location.search='?v='+n;});})();
+
+async function loop(){
+  for(;;){
+    drawBand();
+    sinceNote++;
+    if(sinceNote>14&&Math.random()<0.25){sinceNote=0;var nx=row('note');await type(nx,'',60);await wait(500);await type(nx,note(),18);await wait(1800);continue;}
+    var e=pick(),x=row(e.cls,e.time,e.city);labRow(x.parentNode,e);if(e.harvest){labUsedWord(x.parentNode);await wait(RM?0:1300);}
+    if(e.cls==='ours')sr.textContent='kaverne: '+e.text;
+    await type(x,e.text,e.cls==='ours'?15:22);
+    /* pacing: mostly steady, sometimes a burst, now and then a held breath */
+    var r=Math.random(),gap=r<0.2?rnd([300,450,600]):r<0.9?900+Math.random()*1500:3200+Math.random()*2400;
+    await wait(gap);
+  }
+}
+function wait(ms){return new Promise(function(r){setTimeout(r,RM?ms*1.5:ms);});}
+
+if(window.claude&&window.claude.use)window.claude.use('room').then(function(r){if(!r)return;r.presence({seat:1}).catch(function(){});r.onPeers(function(c){SEATS=c.peers.length;});}).catch(function(){});
+drawBand();tick();setInterval(drawBand,30000);setInterval(tick,1000);
+/* open mid-stream, the way you'd tune in */
+(function seed(){SEEDING=true;for(var k=0;k<7;k++){var e=pick(),x=row(e.cls,e.time,e.city);x.textContent=e.text;}SEEDING=false;lastOurs=Date.now();lastThread=0;})();
+loop();
+})();
+</script>
